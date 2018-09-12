@@ -118,7 +118,8 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
       HAL_UART_Transmit(&huart2,"This is a test\n",16,16);
-      osDelay(1);
+      CDC_Transmit_FS("12345\n",6);
+      osDelay(1000);
   }
   /* USER CODE END StartDefaultTask */
 }

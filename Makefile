@@ -13,7 +13,7 @@
 ######################################
 # target
 ######################################
-TARGET = discovery
+TARGET = Discovery
 
 
 ######################################
@@ -22,14 +22,14 @@ TARGET = discovery
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -O2
 
 
 #######################################
 # paths
 #######################################
 # Build path
-BUILD_DIR = build
+BUILD_DIR = Build
 
 ######################################
 # source

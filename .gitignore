@@ -54,3 +54,4 @@ dkms.conf
 .project
 ./build
 /Build
+.settings/language.settings.xml
