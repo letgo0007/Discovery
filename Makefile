@@ -22,7 +22,7 @@ TARGET = Discovery
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -O2
+OPT = -O2	
 
 
 #######################################
@@ -35,7 +35,7 @@ BUILD_DIR = Build
 # source
 ######################################
 # C sources
-C_SOURCES =  \
+C_SOURCES +=  \
 Core/Src/main.c \
 Core/Src/gpio.c \
 Core/Src/dma.c \
@@ -80,6 +80,8 @@ Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma_ex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.c \
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dfsdm.c\
+Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dfsdm_ex.c\
 Core/Src/system_stm32l4xx.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
@@ -94,6 +96,10 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c  
+
+
+include Drivers/EEPROM_Emul/subdir.mk
+include Drivers/BSP/STM32L476G-Discovery/subdir.mk
 
 # ASM sources
 ASM_SOURCES =  \
@@ -151,7 +157,7 @@ AS_INCLUDES =  \
 -ICore/Inc
 
 # C includes
-C_INCLUDES =  \
+C_INCLUDES +=  \
 -ICore/Inc \
 -IUSB_DEVICE \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \
