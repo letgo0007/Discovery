@@ -100,6 +100,7 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 
 include Drivers/EEPROM_Emul/subdir.mk
 include Drivers/BSP/STM32L476G-Discovery/subdir.mk
+include Application/Terminal/subdir.mk
 
 # ASM sources
 ASM_SOURCES =  \

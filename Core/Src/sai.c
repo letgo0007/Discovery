@@ -119,9 +119,11 @@ void MX_SAI1_Init(void)
   }
 
 }
-static uint32_t SAI1_client =0;
 
 #if 0
+static uint32_t SAI1_client =0;
+
+
 void HAL_SAI_MspInit(SAI_HandleTypeDef* hsai)
 {
 

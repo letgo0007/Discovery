@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file    tsensor.h
+  * @file    hsensor.h
   * @author  MCD Application Team
   * @brief   This header file contains the functions prototypes for the
-  *          Temperature Sensor driver. 
+  *          Humidity Sensor driver.
   ******************************************************************************
   * @attention
   *
