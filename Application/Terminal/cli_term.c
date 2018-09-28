@@ -116,11 +116,12 @@ int cli_history(int argc, char *args[])
 {
     int i = 0;
 
-    printf("Command History:\n[Index][Command]\n");
+    printf("Command History:\n[Index][Address][Command]\n");
     for (i = 0; i < TERM_HISTORY_DEPTH; i++)
     {
-        printf("[%5d][%s]%s%s\n", i,                                    // History index
-                gTermHandle.HistoryBuf[i],                              // History string
+        printf("[%5d][0x%08X][%s]%s%s\n", i,                                    // History index
+                (uint32_t)gTermHandle.HistoryBuf[i],
+                (gTermHandle.HistoryBuf[i] == NULL) ? "NULL" : gTermHandle.HistoryBuf[i],              // History string
                 (i == gTermHandle.HistoryPushIndex) ? "<-Push" : "",    // Push index
                 (i == gTermHandle.HistoryPullIndex) ? "<-Pull" : "");   // Pull index
     }

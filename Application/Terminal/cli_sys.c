@@ -16,6 +16,16 @@
 #include "cli.h"
 
 /*Pointer to certain address*/
+#define CHECK_FUNC_RET(status, func) \
+    do {\
+        int ret = func;\
+        if (status != ret)\
+        {\
+            printf("\e[32mERROR: Return=[%d] "#func"<%s:%d>\n\e[0m", ret, __FILE__, __LINE__);\
+            return ret;\
+        }\
+    } while (0)
+
 #define HWREG32(x)          (*((volatile uint32_t *)((uint32_t)x)))
 #define HWREG16(x)          (*((volatile uint16_t *)((uint32_t)x)))
 #define HWREG8(x)           (*((volatile uint8_t *)((uint32_t)x)))
@@ -25,7 +35,7 @@ extern int str_to_u32(char *str, uint32_t *value);
 void sys_dump_u32(uint64_t address, uint32_t len)
 {
     fflush(stdout);
-    HAL_Delay(5);
+    HAL_Delay(3);
 
     for (int i = 0; i < len; i++)
     {
@@ -37,12 +47,14 @@ void sys_dump_u32(uint64_t address, uint32_t len)
             HAL_Delay(5);
         }
     }
+
+    printf("\n");
 }
 
 void sys_dump_u8(uint64_t address, uint32_t len)
 {
     fflush(stdout);
-    HAL_Delay(5);
+    HAL_Delay(3);
 
     for (int i = 0; i < len; i++)
     {
@@ -55,36 +67,12 @@ void sys_dump_u8(uint64_t address, uint32_t len)
             HAL_Delay(3);
         }
     }
+
+    printf("\n");
 }
 
 uint32_t sys_check_address(uint32_t address)
 {
-
-    /**
-     * Bank 1       0x1FFF0000 - 0x1FFF6FFF           28 K    System memory
-     * Bank 2       0x1FFF8000 - 0x1FFFEFFF           28 K    System memory
-     * Bank 1       0x1FFF7000 - 0x1FFF73FF           1K      OTP area
-     * Bank 1       0x1FFF7800 - 0x1FFF780F           16byte  Option bytes
-     * Bank 2       0x1FFFF800 - 0x1FFFF80F           16byte  Option bytes
-     */
-    //In range of Flash
-    if ((address >= FLASH_BASE) && (address < FLASH_BASE + *(uint16_t*) FLASHSIZE_BASE * 1024))
-    {
-        return address;
-    }
-
-    //In range of Ram (fix 20k Size)
-    if ((address >= SRAM_BASE) && (address < SRAM_BASE + SRAM1_SIZE_MAX + SRAM2_SIZE))
-    {
-        return address;
-    }
-
-    //In range of Peripheral
-    if ((address >= PERIPH_BASE) && (address < PERIPH_BASE + 0x3000))
-    {
-        return address;
-    }
-
     return address;
 }
 
@@ -209,12 +197,6 @@ int cli_mem32(int argc, char *argv[])
         str_to_u32(argv[1], &addr);
         str_to_u32(argv[2], &length);
 
-        if ((sys_check_address(addr) == 0) || (sys_check_address(addr + length) == 0))
-        {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
-            return -1;
-        }
-
         sys_dump_u32(addr, length);
     }
     else if ((strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
@@ -231,7 +213,7 @@ int cli_mem32(int argc, char *argv[])
 
 int cli_mem8(int argc, char *argv[])
 {
-    if (argc == 0)
+    if ((argc == 0) || (argv == NULL))
     {
         printf("%s", mem_helptext);
         return 0;
@@ -240,19 +222,27 @@ int cli_mem8(int argc, char *argv[])
     if ((strcmp(argv[0], "-w") == 0) || (strcmp(argv[0], "--write") == 0))
     {
         uint32_t addr = 0;
-        uint32_t value = 0;
-        str_to_u32(argv[1], &addr);
-        str_to_u32(argv[2], &value);
+        uint16_t len = argc - 2;
+        uint8_t *pdata = malloc(len);
 
-        if (sys_check_address(addr) == 0)
+        //Get Address
+        CHECK_FUNC_RET(0, str_to_u32(argv[1], &addr));
+
+        //Get Data
+        for (int i = 0; i < len; i++)
         {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
-            return -1;
+            CHECK_FUNC_RET(0, str_to_u32(argv[2 + i], pdata + i));
         }
 
-        HWREG8(addr) = value;
+        //Write Data
+        for (int i = 0; i < len; i++)
+        {
+            HWREG8(addr+i) = pdata[i];
+        }
 
-        printf("Mem write: addr[0x%lX] = %d (0x%02X)\n", addr, HWREG8(addr), HWREG8(addr));
+        //Print Result
+        printf("Mem write: addr=[0x%lX], length=[%d]\n", addr, len);
+        sys_dump_u8(pdata, len);
     }
     else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--read") == 0))
     {
@@ -273,12 +263,6 @@ int cli_mem8(int argc, char *argv[])
         uint32_t length = 0;
         str_to_u32(argv[1], &addr);
         str_to_u32(argv[2], &length);
-
-        if ((sys_check_address(addr) == 0) || (sys_check_address(addr + length) == 0))
-        {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
-            return -1;
-        }
 
         sys_dump_u8(addr, length);
     }

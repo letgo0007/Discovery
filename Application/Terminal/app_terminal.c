@@ -41,6 +41,7 @@ extern int cli_otp(int argc, char *argv[]);
 extern int cli_flash(int argc, char *argv[]);
 
 extern int cli_accel(int argc, char *argv[]);
+extern int cli_qspi(int argc, char *argv[]);
 
 /* Private variables ---------------------------------------------------------*/
 /*!@var Terminal Command List.
@@ -61,6 +62,7 @@ const Cli_CommandTypeDef gTermCommand[TERM_COMMAND_MAX] =
 { "reset", cli_reset, "STM32 software reset." },
 { "", NULL, "\n💪 Device driver\n------------------------------" },
 { "accel", cli_accel, "Accelerometer commands" },
+{ "qspi", cli_qspi, "Quad-SPI Flash commands." },
 { "", NULL, "\n------------------------------\r\n" },
 { NULL, NULL, NULL } };
 
@@ -93,14 +95,26 @@ int term_get_array_index(int old_idx, int move, int size)
 int term_history_push(Term_HandleTypeDef *TermHandle, int depth)
 {
 #if TERM_HISTORY_DEPTH
-    //Copy string to history
-    strcpy(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex], TermHandle->StrBuf);
+    //Request memory
+    uint32_t len = strlen(TermHandle->StrBuf) + 1;
+    uint8_t *ptr = TermHandle->HistoryBuf[TermHandle->HistoryPushIndex];
+
+    //ptr = pvPortMalloc(len);
+    ptr = malloc(len);
+
+    TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] = ptr;
+
+    //Copy Command
+    ptr[len - 1] = 0;
+    memcpy(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex], TermHandle->StrBuf, len);
 
     //Set new push/pull index, Calculate next history index.
     TermHandle->HistoryPullIndex = TermHandle->HistoryPushIndex;
     TermHandle->HistoryPushIndex = term_get_array_index(TermHandle->HistoryPushIndex, depth, TERM_HISTORY_DEPTH);
 
-    memset(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex], 0, TERM_STRING_BUF_SIZE);
+    //vPortFree(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
+    free(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
+    TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] = NULL;
 #endif
     return 0;
 }
@@ -121,7 +135,7 @@ int term_history_pull(Term_HandleTypeDef *TermHandle, int depth)
     if (depth < 0)
     {
         //Copy history info and print the new line
-        if (TermHandle->HistoryBuf[TermHandle->HistoryPullIndex][0] != 0)
+        if (TermHandle->HistoryBuf[TermHandle->HistoryPullIndex] != NULL)
         {
             //Copy string from history
             strcpy(TermHandle->StrBuf, TermHandle->HistoryBuf[TermHandle->HistoryPullIndex]);
@@ -131,19 +145,18 @@ int term_history_pull(Term_HandleTypeDef *TermHandle, int depth)
             printf("%s\r%s%s", TERM_ERASE_LINE, TERM_PROMPT_CHAR, TermHandle->StrBuf);
         }
 
-        //Reach the end of history, do nothing.
-        if (TermHandle->HistoryBuf[new_pull_idx][0] == 0)
-        {
-            return 0;
-        }
         //Move to next pull index
-        TermHandle->HistoryPullIndex = new_pull_idx;
+        if (TermHandle->HistoryBuf[new_pull_idx] != NULL)
+        {
+            TermHandle->HistoryPullIndex = new_pull_idx;
+        }
+
     }
     //**Down Arrow**, Move and print
     else if (depth > 0)
     {
         //Reach the end of history, clear out string.
-        if (TermHandle->HistoryBuf[new_pull_idx][0] == 0)
+        if (TermHandle->HistoryBuf[new_pull_idx] == NULL)
         {
             memset(TermHandle->StrBuf, 0, TERM_STRING_BUF_SIZE);
             TermHandle->StrIndex = 0;
@@ -154,7 +167,7 @@ int term_history_pull(Term_HandleTypeDef *TermHandle, int depth)
         TermHandle->HistoryPullIndex = new_pull_idx;
 
         //Copy history info and print the new line
-        if (TermHandle->HistoryBuf[TermHandle->HistoryPullIndex][0] != 0)
+        if (TermHandle->HistoryBuf[TermHandle->HistoryPullIndex] != NULL)
         {
             //Copy string from history
             strcpy(TermHandle->StrBuf, TermHandle->HistoryBuf[TermHandle->HistoryPullIndex]);
@@ -301,12 +314,14 @@ int Term_IO_init(Term_HandleTypeDef *TermHandle)
     memset(TermHandle, 0, sizeof(Term_HandleTypeDef));
     TermHandle->EnableLoopBack = TERM_LOOP_BACK_EN;
 
+    char *stdout_buf = malloc(TERM_STDOUT_BUF_SIZE);
+
     // Set STDOUT/STDIN/STDERR Buffer type and size
     //(char*), It could be a pointer to buffer or NULL. When set to NULL it will automatic assign the buffer.
     //[_IOLBF], Line buffer mode, transmit data when get a '\n'
     //[_IONBF], No buffer mode, transmit data byte 1by1
     //[_IOFBF], Full buffer mode, transmit data when buffer is full, or manually
-    setvbuf(stdout, (char*) NULL, _IOFBF, TERM_STDOUT_BUF_SIZE);
+    setvbuf(stdout, stdout_buf, _IONBF, TERM_STDOUT_BUF_SIZE);
     setvbuf(stderr, (char*) NULL, _IONBF, TERM_STDERR_BUF_SIZE);
     setvbuf(stdin, (char*) NULL, _IONBF, TERM_STDIN_BUF_SIZE);
 

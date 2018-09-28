@@ -51,8 +51,8 @@
 #define TERM_STDERR_BUF_SIZE        0
 #define TERM_STDIN_BUF_SIZE         0
 #define TERM_STRING_BUF_SIZE        256     //!< Maximum terminal command length.
-#define TERM_TOKEN_AMOUNT           16      //!< Maximum tokens in a command.
-#define TERM_HISTORY_DEPTH          8       //!< History depth.
+#define TERM_TOKEN_AMOUNT           64      //!< Maximum tokens in a command.
+#define TERM_HISTORY_DEPTH          64      //!< History depth.
 #define TERM_LOOP_BACK_EN           1       //!< Enable loop back function for terminal.
 
 #define TERM_VERSION                "V1.0"  //!< Terminal Application Version
@@ -67,7 +67,7 @@ typedef struct
     int EscFlag;                            //!< Flags to handle ANSI ESC sequence (up/down/left/right)
     char EnableLoopBack;                    //!< Enable Loopback function for terminal
 #if TERM_HISTORY_DEPTH
-    char HistoryBuf[TERM_HISTORY_DEPTH][TERM_STRING_BUF_SIZE]; //!< Buffer to store history command
+    char *HistoryBuf[TERM_HISTORY_DEPTH]; //!< Buffer to store history command
     int HistoryPushIndex;                   //!< History push index
     int HistoryPullIndex;                   //!< History pull index
 #endif
