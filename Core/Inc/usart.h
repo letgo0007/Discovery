@@ -65,29 +65,11 @@ extern UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN Private defines */
 /* Define -------------------------------------------------------------------*/
-#define UART1_TXBUF_SIZE        0
-#define UART1_RXBUF_SIZE        0
-#define UART2_TXBUF_SIZE        0
-#define UART2_RXBUF_SIZE        (4096)
-#define UART3_TXBUF_SIZE        0
-#define UART3_RXBUF_SIZE        0
-
-#define TERM_UART_INSTANCE      USART2          //!< Terminal UART base address
-#define TERM_UART_HANDLE        huart2          //!< Terminal UART handle
-#define TERM_UART_RXBUF         uart2_rxbuf     //!< Terminal UART RX buffer
-#define TERM_UART_TXBUF         uart2_txbuf     //!< Terminal UART TX buffer
 
 /* Variables ----------------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-
-extern uint8_t uart1_txbuf[UART1_TXBUF_SIZE];
-extern uint8_t uart1_rxbuf[UART1_RXBUF_SIZE];
-extern uint8_t uart2_txbuf[UART2_TXBUF_SIZE];
-extern uint8_t uart2_rxbuf[UART2_RXBUF_SIZE];
-extern uint8_t uart3_txbuf[UART3_TXBUF_SIZE];
-extern uint8_t uart3_rxbuf[UART3_RXBUF_SIZE];
 
 /* Functions ----------------------------------------------------------------*/
 /* USER CODE END Private defines */

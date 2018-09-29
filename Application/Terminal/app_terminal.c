@@ -314,17 +314,6 @@ int Term_IO_init(Term_HandleTypeDef *TermHandle)
     memset(TermHandle, 0, sizeof(Term_HandleTypeDef));
     TermHandle->EnableLoopBack = TERM_LOOP_BACK_EN;
 
-    char *stdout_buf = malloc(TERM_STDOUT_BUF_SIZE);
-
-    // Set STDOUT/STDIN/STDERR Buffer type and size
-    //(char*), It could be a pointer to buffer or NULL. When set to NULL it will automatic assign the buffer.
-    //[_IOLBF], Line buffer mode, transmit data when get a '\n'
-    //[_IONBF], No buffer mode, transmit data byte 1by1
-    //[_IOFBF], Full buffer mode, transmit data when buffer is full, or manually
-    setvbuf(stdout, stdout_buf, _IONBF, TERM_STDOUT_BUF_SIZE);
-    setvbuf(stderr, (char*) NULL, _IONBF, TERM_STDERR_BUF_SIZE);
-    setvbuf(stdin, (char*) NULL, _IONBF, TERM_STDIN_BUF_SIZE);
-
     return 0;
 }
 

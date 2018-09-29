@@ -34,17 +34,12 @@ extern int str_to_u32(char *str, uint32_t *value);
 
 void sys_dump_u32(uint64_t address, uint32_t len)
 {
-    fflush(stdout);
-    HAL_Delay(3);
-
     for (int i = 0; i < len; i++)
     {
         printf("0x%08lX ", HWREG32(address + 4 * i));
         if (i % 8 == 7)
         {
             printf("\n");
-            fflush(stdout);
-            HAL_Delay(5);
         }
     }
 
@@ -53,9 +48,6 @@ void sys_dump_u32(uint64_t address, uint32_t len)
 
 void sys_dump_u8(uint64_t address, uint32_t len)
 {
-    fflush(stdout);
-    HAL_Delay(3);
-
     for (int i = 0; i < len; i++)
     {
         printf("0x%02X ", HWREG8(address++));
@@ -63,11 +55,8 @@ void sys_dump_u8(uint64_t address, uint32_t len)
         if (i % 16 == 15)
         {
             printf("\n");
-            fflush(stdout);
-            HAL_Delay(3);
         }
     }
-
     printf("\n");
 }
 

@@ -47,7 +47,7 @@
 #define TERM_YELLOW                 "\e[33m"
 #define TERM_BLUE                   "\e[34m"
 
-#define TERM_STDOUT_BUF_SIZE        4096    //!< Maximum STDOUT buffer queue length
+#define TERM_STDOUT_BUF_SIZE        256    //!< Maximum STDOUT buffer queue length
 #define TERM_STDERR_BUF_SIZE        0
 #define TERM_STDIN_BUF_SIZE         0
 #define TERM_STRING_BUF_SIZE        256     //!< Maximum terminal command length.

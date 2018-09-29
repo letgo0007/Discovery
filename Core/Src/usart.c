@@ -54,7 +54,7 @@
 #include "dma.h"
 
 /* USER CODE BEGIN 0 */
-#include "stdio.h"
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart2;
@@ -81,7 +81,6 @@ void MX_USART2_UART_Init(void)
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    HAL_UART_Receive_DMA(&huart2, uart2_rxbuf, sizeof(uart2_rxbuf));
 
 }
 
@@ -184,98 +183,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
 /* USER CODE BEGIN 1 */
 
-uint8_t uart1_txbuf[UART1_TXBUF_SIZE];
-uint8_t uart1_rxbuf[UART1_RXBUF_SIZE];
-uint8_t uart2_txbuf[UART2_TXBUF_SIZE];
-uint8_t uart2_rxbuf[UART2_RXBUF_SIZE];
-uint8_t uart3_txbuf[UART3_TXBUF_SIZE];
-uint8_t uart3_rxbuf[UART3_RXBUF_SIZE];
-
-/*!@brief   Override system call of _read, route STDIN to UART RX.
- *          get byte from STDIN stream.
- *
- * @param file  stdin
- * @param ptr   pointer to store read byte
- * @param len   length of read bytes
- * @return      Length of bytes actually read.
- */
-int _read(int file, char *ptr, int len)
-{
-    int i;
-
-    for (i = 0; i < len; i++)
-    {
-        static int idx = 0;
-        char c = TERM_UART_RXBUF[idx];
-
-        if (c == 0)
-        {
-            *ptr = '\xff';
-        }
-        else
-        {
-            *ptr++ = c;
-
-            //Clear current buffer and move forward.
-            TERM_UART_RXBUF[idx] = 0;
-            idx++;
-            idx = (idx >= sizeof(TERM_UART_RXBUF)) ? 0 : idx;
-        }
-    }
-
-    return len;
-}
-
-/*!@brief   Override system call of _write, route STDOUT to UART TX.
- *          Transfer bytes through UART.
- *          STDOUT will be transfered in non-blocking mode.
- *          STDERR will be abort current STDOUT (if there are) and transfered in blocking mode.
- *
- * @param file  STDOUT_FILENO or STDERR_FILENO
- * @param ptr   Pointer to bytes
- * @param len   Length of bytes
- * @return      Length of bytes actually transfered
- */
-int _write(int file, char *ptr, int len)
-{
-    if (file == 1) //STDOUT
-    {
-        if (len == 1)
-        {
-            // Blocking transmit mode for single byte
-            while (HAL_OK != HAL_UART_Transmit(&TERM_UART_HANDLE, (uint8_t*) ptr, len, 1 + len))
-            {
-                ;
-            }
-            return len;
-        }
-        else
-        {
-            // Check if last transfer completed.
-            while (HAL_DMA_STATE_BUSY == HAL_DMA_GetState(TERM_UART_HANDLE.hdmatx))
-            {
-                ;
-            }
-            // No-Blocking transmit mode for multiple bytes
-            while (HAL_OK != HAL_UART_Transmit_DMA(&TERM_UART_HANDLE, (uint8_t*) ptr, len))
-            {
-                ;
-            }
-            return len;
-        }
-    }
-    if (file == 2) //STDERR
-    {
-        // Blocking transmit mode for STDERR ; Higher Priority than STDOUT.
-        HAL_UART_AbortTransmit(&TERM_UART_HANDLE);
-        while (HAL_OK != HAL_UART_Transmit(&TERM_UART_HANDLE, (uint8_t*) ptr, len, 1 + len))
-        {
-            ;
-        }
-        return len;
-    }
-    return 0;
-}
 /* USER CODE END 1 */
 
 /* USER CODE END 1 */
