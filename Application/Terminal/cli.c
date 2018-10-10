@@ -16,6 +16,32 @@
 
 #include "cli.h"
 
+/*!@brief Convert a string to a unsigned 8bit integer.
+ *
+ * @param str       Pointer to string
+ * @param value     Pointer to data if u8
+ * @retval 0        Success
+ * @retval -1       Failure
+ */
+int str_to_u8(char *str, uint8_t *value)
+{
+    if ((str == NULL) || (value == NULL))
+    {
+        return -1;
+    }
+
+    char *tail = NULL;
+    int32_t result = strtol(str, &tail, 0);
+
+    if (tail[0] == 0)
+    {
+        *value = (uint8_t) result;
+        return 0;
+    }
+
+    return -1;
+}
+
 int str_to_u32(char *str, uint32_t *value)
 {
     if ((str == NULL) || (value == NULL))
@@ -57,7 +83,8 @@ int str_to_u64(char *str, uint64_t *value)
 /*!@brief Print option list with help text.
  *
  * @param options   Option list
- * @return          CLI_SUCCESS or CLI_FAILURE of the process
+ * @retval CLI_SUCCESS
+ * @retval CLI_FAILURE
  */
 CLI_RET Cli_printOption(Cli_OptionTypeDef options[])
 {

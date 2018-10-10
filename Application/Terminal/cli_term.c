@@ -119,11 +119,44 @@ int cli_history(int argc, char *args[])
     printf("Command History:\n[Index][Address][Command]\n");
     for (i = 0; i < TERM_HISTORY_DEPTH; i++)
     {
-        printf("[%5d][0x%08X][%s]%s%s\n", i,                                    // History index
-                (uint32_t)gTermHandle.HistoryBuf[i],
+        printf("[%5d][0x%08X][%s]%s%s\n",
+                i,                                    // History index
+                (uint32_t) gTermHandle.HistoryBuf[i],
                 (gTermHandle.HistoryBuf[i] == NULL) ? "NULL" : gTermHandle.HistoryBuf[i],              // History string
                 (i == gTermHandle.HistoryPushIndex) ? "<-Push" : "",    // Push index
                 (i == gTermHandle.HistoryPullIndex) ? "<-Pull" : "");   // Pull index
     }
+    return 0;
+}
+
+int cli_repeat(int argc, char *argv[])
+{
+    if ((argc < 2) || (strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
+    {
+        printf("repeat [count] [command]\n"
+                "\tcount\t:Repeat cound of a command.\n"
+                "\tcommand\t:The terminal command to run, e.g. \"test -i 123\"\n");
+    }
+
+    int count = strtol(argv[0], NULL, 0);
+    int i = 0;
+
+    for (i = 0; i < count; i++)
+    {
+        char cmd_buf[TERM_STRING_BUF_SIZE] =
+        { 0 };
+        char *argbuf[TERM_TOKEN_AMOUNT] =
+        { 0 };
+        int argcount = 0;
+
+        strcpy(cmd_buf, argv[1]);
+
+        printf("%sRepeat [%d/%d] of [%s]\n%s", TERM_BOLD, i + 1, count, cmd_buf, TERM_RESET);
+        fflush(stdout);
+
+        Cli_parseString(cmd_buf, &argcount, argbuf);
+        Cli_runCommand(argcount, argbuf, gTermCommand);
+    }
+
     return 0;
 }

@@ -15,6 +15,7 @@
 #include <app_terminal.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 /* Private function prototypes -----------------------------------------------*/
 extern int cli_test(int argc, char *args[]);
@@ -55,11 +56,12 @@ const Cli_CommandTypeDef gTermCommand[TERM_COMMAND_MAX] =
 { "test", cli_test, "Run a argument parse example." },
 { "repeat", cli_repeat, "Repeat running a command." },
 { "version", cli_ver, "Show Command version" },
-{ "mem32", cli_mem32, "STM32 memory write/read." },
-{ "mem8", cli_mem8, "STM32 memory write/read in byte mode." },
+{ "time", cli_time, "Test command execute time." },
 { "", NULL, "\n💪 STM32 MCU basic commands\n------------------------------" },
 { "info", cli_info, "Show MCU information." },
 { "reset", cli_reset, "STM32 software reset." },
+{ "mem32", cli_mem32, "STM32 memory write/read." },
+{ "mem8", cli_mem8, "STM32 memory write/read in byte mode." },
 { "", NULL, "\n💪 Device driver\n------------------------------" },
 { "accel", cli_accel, "Accelerometer commands" },
 { "qspi", cli_qspi, "Quad-SPI Flash commands." },
@@ -97,16 +99,14 @@ int term_history_push(Term_HandleTypeDef *TermHandle, int depth)
 #if TERM_HISTORY_DEPTH
     //Request memory
     uint32_t len = strlen(TermHandle->StrBuf) + 1;
-    uint8_t *ptr = TermHandle->HistoryBuf[TermHandle->HistoryPushIndex];
+    char *ptr = TermHandle->HistoryBuf[TermHandle->HistoryPushIndex];
 
     //ptr = pvPortMalloc(len);
-    ptr = malloc(len);
-
+    ptr = (char*) realloc(ptr, len);
     TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] = ptr;
 
     //Copy Command
-    ptr[len - 1] = 0;
-    memcpy(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex], TermHandle->StrBuf, len);
+    memcpy(ptr, TermHandle->StrBuf, len);
 
     //Set new push/pull index, Calculate next history index.
     TermHandle->HistoryPullIndex = TermHandle->HistoryPushIndex;
@@ -138,6 +138,7 @@ int term_history_pull(Term_HandleTypeDef *TermHandle, int depth)
         if (TermHandle->HistoryBuf[TermHandle->HistoryPullIndex] != NULL)
         {
             //Copy string from history
+            memset(TermHandle->StrBuf, 0, strlen(TermHandle->StrBuf));
             strcpy(TermHandle->StrBuf, TermHandle->HistoryBuf[TermHandle->HistoryPullIndex]);
             TermHandle->StrIndex = strlen(TermHandle->StrBuf);
 
@@ -443,10 +444,10 @@ int App_Terminal_unregister()
 int App_Terminal_init(void)
 {
     Term_IO_init(&gTermHandle);
-    printf("\r\n#============================#");
-    printf("\r\n#    %s%s🍱 Aha, BentoBox! 🍱%s    #", TERM_BOLD, TERM_BLINK, TERM_RESET);
-    printf("\r\n#============================#");
-    printf("\r\nTerminal Version=[%s]\nCompile Date=[%s %s]\n%s",
+    printf("\n\n#============================#");
+    printf("\n#    %s%s🍱 Aha, BentoBox! 🍱%s    #", TERM_BOLD, TERM_BLINK, TERM_RESET);
+    printf("\n#============================#");
+    printf("\nTerminal Version=[%s]\nCompile Date=[%s %s]\n%s",
     TERM_VERSION,
     __DATE__,
     __TIME__,
@@ -463,22 +464,22 @@ int App_Terminal_run(void)
 
     //Start a Mini-Terminal
     scount = Term_IO_getline(&gTermHandle, sbuf);
-    if (scount > 1)
+    if (scount >= 3)
     {
         char *argbuf[TERM_TOKEN_AMOUNT] =
         { 0 };
         int argcount = 0;
         //Convert string to args and run command.
         Cli_parseString(sbuf, &argcount, argbuf);
-        Cli_runCommand(argcount, argbuf, gTermCommand);
+        int ret = Cli_runCommand(argcount, argbuf, gTermCommand);
 
         //Clear string buffer
         memset(sbuf, 0, scount);
-
-        printf("%s", TERM_PROMPT_CHAR);
+        printf("%s\n%s", (ret == 0) ? "OK" : "ERROR", TERM_PROMPT_CHAR);
     }
-    else if (scount == 1)
+    else if (scount >= 1)
     {
+        memset(sbuf, 0, scount);
         printf("%s", TERM_PROMPT_CHAR);
     }
 

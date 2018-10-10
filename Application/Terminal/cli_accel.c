@@ -47,7 +47,7 @@ int cli_accel(int argc, char **argv)
     {
         if (AccelerometerDrv->GetXYZ != NULL)
         {
-            uint16_t pDataXYZ[3] =
+            int16_t pDataXYZ[3] =
             { 0 };
             AccelerometerDrv->GetXYZ(pDataXYZ);
 

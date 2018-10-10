@@ -492,6 +492,8 @@ uint8_t BSP_QSPI_GetInfo(QSPI_Info *pInfo)
 {
   /* Configure the structure with the memory configuration */
   pInfo->FlashSize          = N25Q128A_FLASH_SIZE;
+  pInfo->SectorSize         = N25Q128A_SECTOR_SIZE;
+  pInfo->SectorNumber       = (N25Q128A_FLASH_SIZE / N25Q128A_SECTOR_SIZE);
   pInfo->EraseSectorSize    = N25Q128A_SUBSECTOR_SIZE;
   pInfo->EraseSectorsNumber = (N25Q128A_FLASH_SIZE / N25Q128A_SUBSECTOR_SIZE);
   pInfo->ProgPageSize       = N25Q128A_PAGE_SIZE;

@@ -81,8 +81,10 @@ extern "C" {
 typedef struct
 {
   uint32_t FlashSize;          /*!< Size of the flash */
-  uint32_t EraseSectorSize;    /*!< Size of sectors for the erase operation */
-  uint32_t EraseSectorsNumber; /*!< Number of sectors for the erase operation */
+  uint32_t SectorSize;         /*!< Size of Sectors for the erase operation */
+  uint32_t SectorNumber;       /*!< Number of Sectors for the erase operation */
+  uint32_t EraseSectorSize;    /*!< Size of sub-sectors for the erase operation */
+  uint32_t EraseSectorsNumber; /*!< Number of sub-sectors for the erase operation */
   uint32_t ProgPageSize;       /*!< Size of pages for the program operation */
   uint32_t ProgPagesNumber;    /*!< Number of pages for the program operation */
 } QSPI_Info;

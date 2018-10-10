@@ -32,7 +32,7 @@
 
 extern int str_to_u32(char *str, uint32_t *value);
 
-void sys_dump_u32(uint64_t address, uint32_t len)
+void sys_dump_u32(uint32_t address, uint32_t len)
 {
     for (int i = 0; i < len; i++)
     {
@@ -46,7 +46,7 @@ void sys_dump_u32(uint64_t address, uint32_t len)
     printf("\n");
 }
 
-void sys_dump_u8(uint64_t address, uint32_t len)
+void sys_dump_u8(uint32_t address, uint32_t len)
 {
     for (int i = 0; i < len; i++)
     {
@@ -86,36 +86,19 @@ int cli_reset(int argc, char *argv[])
     return 0;
 }
 
-int cli_repeat(int argc, char *argv[])
+int cli_time(int argc, char *argv[])
 {
-    if ((argc < 2) || (strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
-    {
-        printf("repeat [count] [command]\n"
-                "\tcount\t:Repeat cound of a command.\n"
-                "\tcommand\t:The terminal command to run, e.g. \"test -i 123\"\n");
-    }
+    uint32_t tm_start = 0;  //Start Time
+    uint32_t tm_end = 0;    //End Time
 
-    int count = strtol(argv[0], NULL, 0);
-    int i = 0;
+    tm_start = HAL_GetTick();
+    int ret = Cli_runCommand(argc, argv, gTermCommand);
+    tm_end = HAL_GetTick();
 
-    for (i = 0; i < count; i++)
-    {
-        char cmd_buf[TERM_STRING_BUF_SIZE] =
-        { 0 };
-        char *argbuf[TERM_TOKEN_AMOUNT] =
-        { 0 };
-        int argcount = 0;
+    uint32_t ms = tm_end - tm_start;
+    printf("\ntime: %d.%03d s\n", (uint16_t) (ms / 1000), (uint16_t) (ms % 1000));
 
-        strcpy(cmd_buf, argv[1]);
-
-        printf("%sRepeat [%d/%d] of [%s]\n%s", TERM_BOLD, i + 1, count, cmd_buf, TERM_RESET);
-        fflush(stdout);
-
-        Cli_parseString(cmd_buf, &argcount, argbuf);
-        Cli_runCommand(argcount, argbuf, gTermCommand);
-    }
-
-    return 0;
+    return ret;
 }
 
 int cli_info(int argc, char *argv[])
@@ -128,8 +111,10 @@ int cli_info(int argc, char *argv[])
 
     printf("FLASH Addr : 0x%08lX\n", FLASH_BASE);
     printf("FLASH Size : %d kB\n", *(uint16_t*) FLASHSIZE_BASE);
-    printf("SRAM  Addr : 0x%08lX\n", SRAM_BASE);
-    printf("SRAM  Addr : 0x%08lX\n", SRAM1_SIZE_MAX + SRAM2_SIZE);
+    printf("SRAM1 Addr : 0x%08lX\n", SRAM1_BASE);
+    printf("SRAM1 Size : %ld kB\n", SRAM1_SIZE_MAX / 1024);
+    printf("SRAM2 Addr : 0x%08lX\n", SRAM2_BASE);
+    printf("SRAM2 Size : %ld kB\n", SRAM2_SIZE / 1024);
 
     return 0;
 }
@@ -143,6 +128,8 @@ const char *mem_helptext = "mem32 / mem8 command usage:\n"
 
 int cli_mem32(int argc, char *argv[])
 {
+    uint32_t *pdata = NULL;
+
     if (argc == 0)
     {
         printf("%s", mem_helptext);
@@ -151,33 +138,46 @@ int cli_mem32(int argc, char *argv[])
 
     if ((strcmp(argv[0], "-w") == 0) || (strcmp(argv[0], "--write") == 0))
     {
-        uint32_t addr = 0;
-        uint32_t value = 0;
-        str_to_u32(argv[1], &addr);
-        str_to_u32(argv[2], &value);
-
-        if (sys_check_address(addr) == 0)
+        if ((argc < 3) || argv[1] == NULL)
         {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
             return -1;
         }
 
-        HWREG32(addr) = value;
+        // Get Parameters
+        uint32_t addr = 0;
+        uint16_t size = (argc - 2);
+        str_to_u32(argv[1], &addr);
 
-        printf("Mem write: addr[0x%lX]=%ld(0x%08lX)\n", addr, HWREG32(addr), HWREG32(addr));
+        // Prepare buffer and parse data
+        pdata = (uint32_t*) malloc(size * 4);
+        if (pdata == NULL)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < size; i++)
+        {
+            int ret = str_to_u32(argv[2 + i], pdata + i);
+            if (ret == -1)
+            {
+                printf("\e[31mERROR: Can't get number from [%s]\e[0m\n", argv[2 + i]);
+                return -1;
+            }
+        }
+
+        // Write Data
+        memcpy(addr, pdata, size * 4);
+
+        // Print Result
+        printf("Memory Write @ addr[0x%lX], length=[%d]\n", addr, size);
+        sys_dump_u32(pdata, size);
     }
     else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--read") == 0))
     {
         uint32_t addr = 0;
         str_to_u32(argv[1], &addr);
 
-        if (sys_check_address(addr) == 0)
-        {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
-            return -1;
-        }
-
-        printf("Mem read: addr[0x%lX]=%ld(0x%08lX)\n", addr, HWREG32(addr), HWREG32(addr));
+        printf("Memory Read @ addr[0x%lX]=%ld(0x%08lX)\n", addr, HWREG32(addr), HWREG32(addr));
     }
     else if ((strcmp(argv[0], "-d") == 0) || (strcmp(argv[0], "--dump") == 0))
     {
@@ -197,11 +197,17 @@ int cli_mem32(int argc, char *argv[])
         printf("Unknown option of [%s], try [-h] for help.\n", argv[0]);
     }
 
+    exit: if (pdata != NULL)
+    {
+        free(pdata);
+    }
     return 0;
 }
 
 int cli_mem8(int argc, char *argv[])
 {
+    uint8_t *pdata = NULL;
+
     if ((argc == 0) || (argv == NULL))
     {
         printf("%s", mem_helptext);
@@ -210,44 +216,54 @@ int cli_mem8(int argc, char *argv[])
 
     if ((strcmp(argv[0], "-w") == 0) || (strcmp(argv[0], "--write") == 0))
     {
+        if ((argc < 3) || argv[1] == NULL)
+        {
+            return -1;
+        }
+
+        // Get Parameters
         uint32_t addr = 0;
-        uint16_t len = argc - 2;
-        uint8_t *pdata = malloc(len);
+        uint16_t size = argc - 2;
+        str_to_u32(argv[1], &addr);
 
-        //Get Address
-        CHECK_FUNC_RET(0, str_to_u32(argv[1], &addr));
-
-        //Get Data
-        for (int i = 0; i < len; i++)
+        // Prepare buffer and parse data
+        pdata = (uint8_t*) malloc(size);
+        if (pdata == NULL)
         {
-            CHECK_FUNC_RET(0, str_to_u32(argv[2 + i], pdata + i));
+            return -1;
         }
 
-        //Write Data
-        for (int i = 0; i < len; i++)
+        for (int i = 0; i < size; i++)
         {
-            HWREG8(addr+i) = pdata[i];
+            int ret = str_to_u8(argv[2 + i], pdata + i);
+            if (ret == -1)
+            {
+                printf("\e[31mERROR: Can't get number from [%s]\e[0m\n", argv[2 + i]);
+                return -1;
+            }
         }
 
-        //Print Result
-        printf("Mem write: addr=[0x%lX], length=[%d]\n", addr, len);
-        sys_dump_u8(pdata, len);
+        // Write Data
+        memcpy(addr, pdata, size);
+
+        // Print Result
+        printf("Memory Write @ addr[0x%lX], length=[%d]\n", addr, size);
+        sys_dump_u8(pdata, size);
     }
     else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--read") == 0))
     {
         uint32_t addr = 0;
         str_to_u32(argv[1], &addr);
 
-        if (sys_check_address(addr) == 0)
-        {
-            printf("ERROR: Invalid address of [0x%08lX], access denied.\n", addr);
-            return -1;
-        }
-
-        printf("Mem read: addr[0x%lX] = %d (0x%02X)\n", addr, HWREG8(addr), HWREG8(addr));
+        printf("Memory Read @ addr[0x%lX] = %d (0x%02X)\n", addr, HWREG8(addr), HWREG8(addr));
     }
     else if ((strcmp(argv[0], "-d") == 0) || (strcmp(argv[0], "--dump") == 0))
     {
+        if ((argc < 3) || argv[1] == NULL)
+        {
+            return -1;
+        }
+
         uint32_t addr = 0;
         uint32_t length = 0;
         str_to_u32(argv[1], &addr);
@@ -264,5 +280,10 @@ int cli_mem8(int argc, char *argv[])
         printf("Unknown option of [%s], try [-h] for help.\n", argv[0]);
     }
 
+    exit: if (pdata != NULL)
+    {
+        free(pdata);
+    }
     return 0;
 }
+

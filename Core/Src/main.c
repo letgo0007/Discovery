@@ -115,8 +115,8 @@ int main(void)
     MX_DMA_Init();
     MX_I2C1_Init();
     MX_I2C2_Init();
-    MX_LCD_Init();
-    MX_QUADSPI_Init();
+    //MX_LCD_Init();
+    //MX_QUADSPI_Init();
     MX_SAI1_Init();
     MX_SPI2_Init();
     MX_USART2_UART_Init();
