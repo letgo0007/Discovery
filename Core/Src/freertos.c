@@ -123,7 +123,7 @@ void StartDefaultTask(void const * argument)
     {
         App_Terminal_run();
 
-        osDelay(100);
+        osDelay(10);
 
     }
     /* USER CODE END StartDefaultTask */

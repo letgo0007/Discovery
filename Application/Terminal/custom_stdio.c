@@ -1,88 +1,115 @@
-/*
- * custom_stdio.c
+/******************************************************************************
+ * @file    custom_stdio.c
+ *          Custom override STDIO to UART in STM32 system.
  *
- *  Created on: Sep 28, 2018
- *      Author: nickyang
- */
+ * @author  Nick Yang
+ * @date    2018/10/11
+ * @version V0.1
+ *****************************************************************************/
 #include "stm32l4xx_hal.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "cmsis_os.h"
 
-#define STDIN_RX_MEM_SIZE           1024
-#define STDOUT_TX_LINE_SIZE         256
-#define STDOUT_TX_QUEUE_SIZE        256
-#define STDOUT_TX_MEM_SIZE          4096
+#define STDIN_RX_MEM_SIZE           1024        //!< STDIN input buffer size
+#define STDOUT_TX_LINE_SIZE         256         //!< STDOUT Single line maximum length.
+#define STDOUT_TX_QUEUE_SIZE        256         //!< STDOUT Number of lines in queue.
+#define STDOUT_TX_MEM_SIZE          4096        //!< STDOUT total memory buffer usage.
+
+#define STDIO_MALLOC(x)             malloc(x)
+#define STDIO_FREE(x)               free(x)
+#define STDIO_DELAY(x)              osDelay(x)    //osDelay
 
 extern UART_HandleTypeDef huart2;
 
-UART_HandleTypeDef *STDIN_huart = &huart2;      //!< STDIN UART handle
-UART_HandleTypeDef *STDOUT_huart = &huart2;     //!< STDOUT UART handle
+static UART_HandleTypeDef *STDIN_huart = &huart2;      //!< STDIN UART handle
+static UART_HandleTypeDef *STDOUT_huart = &huart2;     //!< STDOUT UART handle
+static UART_HandleTypeDef *STDERR_huart = &huart2;     //!< STDERR UART handle
 
-uint8_t STDIN_RxBuf[STDIN_RX_MEM_SIZE] =
+static uint8_t STDIN_RxBuf[STDIN_RX_MEM_SIZE] =
 { 0 };
+static uint8_t *STDOUT_TxQueuePtr[STDOUT_TX_QUEUE_SIZE] =
+{ 0 };
+static uint16_t STDOUT_TxQueueLen[STDOUT_TX_QUEUE_SIZE] =
+{ 0 };
+static uint16_t STDOUT_TxQueueHead = 0;
+static uint16_t STDOUT_TxQueueTail = 0;
 
-uint8_t *STDOUT_TxQueuePtr[STDOUT_TX_QUEUE_SIZE] =
-{ 0 };
-uint16_t STDOUT_TxQueueLen[STDOUT_TX_QUEUE_SIZE] =
-{ 0 };
-uint16_t STDOUT_TxQueueHead = 0;
-uint16_t STDOUT_TxQueueTail = 0;
-uint16_t STDOUT_TxMemUsage = 0;
-
+/*!@brief Get STDOUT transmit queue usage.
+ *
+ * @return Number of transmit already in queue.
+ */
 uint32_t STDOUT_GetQueueUsage(void)
 {
     return (STDOUT_TxQueueHead + STDOUT_TX_QUEUE_SIZE - STDOUT_TxQueueTail) % STDOUT_TX_QUEUE_SIZE;
 }
 
+/*!@brief Get STDOUT transmit queue memory usage.
+ *
+ * @return Number of bytes already in STDOUT output heap.
+ */
 uint32_t STDOUT_GetMemUsage(void)
 {
-    return STDOUT_TxMemUsage;
+    uint16_t i = 0;
+    uint32_t sum = 0;
+    for (i = STDOUT_TxQueueTail; i == STDOUT_TxQueueHead; i++)
+    {
+        sum += STDOUT_TxQueueLen[i];
+        if (i == STDOUT_TX_QUEUE_SIZE)
+        {
+            i = 0;
+        }
+    }
+    return sum;
 }
 
-uint32_t STDOUT_PushToQueueHead(uint8_t *str, uint16_t len)
+/*!@brief Put a string to the head of the transmit queue.
+ *        This function will request heap to buffer the string, and the transmit is handled by DMA & ISR.
+ *
+ * @param str   Pointer to string to transmit.
+ * @param len   Length of the string.
+ * @return      Number of bytes is put into the queue head.
+ */
+uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len)
 {
     // Check Queue & Memory usage. Wait here if they reach limit.
-    while (STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1)
+    while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1) || (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE))
     {
-        //HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-        HAL_Delay(10);
-    }
-
-    while (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE)
-    {
-        HAL_Delay(10);
+        STDIO_DELAY(1);
     }
 
     // Request memory and buffer string. These memory should be set free in Print_TransmitCpltCallBack
     uint8_t *pBuf = NULL;
     do
     {
-        pBuf = (uint8_t*) malloc((size_t) len);
+        pBuf = (uint8_t*) STDIO_MALLOC((size_t ) len);
     } while (pBuf == NULL);
 
     memcpy(pBuf, str, len);
 
-    // Check if Queue is full
     // Set new Queue Head
     STDOUT_TxQueuePtr[STDOUT_TxQueueHead] = pBuf;
     STDOUT_TxQueueLen[STDOUT_TxQueueHead] = len;
     STDOUT_TxQueueHead = (STDOUT_TxQueueHead == STDOUT_TX_QUEUE_SIZE - 1) ? 0 : STDOUT_TxQueueHead + 1;
 
-    STDOUT_TxMemUsage += len;
+    return len;
 }
 
+/*!@brief Trigger a UART transmit from Queue tail.
+ *
+ * @param huart     Handle of target UART.
+ * @return          Number of bytes is put into DMA.
+ */
 uint32_t STDOUT_TransmitFromQueueTail(UART_HandleTypeDef *huart)
 {
-    HAL_StatusTypeDef status;
     uint8_t *pData = STDOUT_TxQueuePtr[STDOUT_TxQueueTail];
     uint32_t Len = STDOUT_TxQueueLen[STDOUT_TxQueueTail];
 
     //Try transmit data if there are any.
     if ((pData != NULL) && (Len > 0))
     {
-        status = HAL_UART_Transmit_DMA(huart, pData, Len);
-        if (status == HAL_OK)
+        if (HAL_OK == HAL_UART_Transmit_DMA(huart, pData, Len))
         {
             return Len;
         }
@@ -94,8 +121,8 @@ uint32_t STDOUT_TransmitFromQueueTail(UART_HandleTypeDef *huart)
 void STDOUT_TransmitCpltCallBack(UART_HandleTypeDef *huart)
 {
     //Free Current Buffer.
-    free((void*) STDOUT_TxQueuePtr[STDOUT_TxQueueTail]);
-    STDOUT_TxMemUsage = STDOUT_TxMemUsage - STDOUT_TxQueueLen[STDOUT_TxQueueTail];
+    STDIO_FREE((void* ) STDOUT_TxQueuePtr[STDOUT_TxQueueTail]);
+
     STDOUT_TxQueuePtr[STDOUT_TxQueueTail] = NULL;
     STDOUT_TxQueueLen[STDOUT_TxQueueTail] = 0;
     STDOUT_TxQueueTail = (STDOUT_TxQueueTail == STDOUT_TX_QUEUE_SIZE - 1) ? 0 : STDOUT_TxQueueTail + 1;
@@ -163,9 +190,9 @@ int _write(int file, char *ptr, int len)
     {
         /*! Set STDOUT/STDIN/STDERR Buffer type and size
          *(char*), It could be a pointer to buffer or NULL. When set to NULL it will automatic assign the buffer.
-         *[_IOLBF], Line buffer mode, transmit data when get a '\n'
+         *[_IOLBF], Line buffer mode, transmit data when get a '\n', or line buffer is full.
          *[_IONBF], No buffer mode, transmit data byte 1by1
-         *[_IOFBF], Full buffer mode, transmit data when buffer is full, or manually
+         *[_IOFBF], Full buffer mode, transmit data when buffer is full, or manually flush.
          */
         InitFlag = 1;
         setvbuf(stdout, (char*) NULL, _IOLBF, STDOUT_TX_LINE_SIZE);
@@ -176,19 +203,10 @@ int _write(int file, char *ptr, int len)
     //STDOUT
     if (file == 1)
     {
-        if (len == 1)
-        {
-            // Blocking transmit mode for single byte
-            while (HAL_OK != HAL_UART_Transmit(STDOUT_huart, (uint8_t*) ptr, len, 1 + len))
-            {
-                ;
-            }
-        }
-        else
-        {
-            STDOUT_PushToQueueHead(ptr, len);
-            STDOUT_TransmitFromQueueTail(STDOUT_huart);
-        }
+
+        STDOUT_PushToQueueHead(ptr, len);
+        STDOUT_TransmitFromQueueTail(STDOUT_huart);
+
         return len;
     }
 
@@ -196,8 +214,8 @@ int _write(int file, char *ptr, int len)
     if (file == 2)
     {
         // Blocking transmit mode for STDERR ; Higher Priority than STDOUT.
-        HAL_UART_AbortTransmit(STDOUT_huart);
-        while (HAL_OK != HAL_UART_Transmit(STDOUT_huart, (uint8_t*) ptr, len, 1 + len))
+        HAL_UART_AbortTransmit(STDERR_huart);
+        while (HAL_OK != HAL_UART_Transmit(STDERR_huart, (uint8_t*) ptr, len, 1 + len))
         {
             ;
         }
