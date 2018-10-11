@@ -17,11 +17,17 @@ const char QSPI_HELPTEXT[] = "Quad-SPI Flash commands:\n"
         "\t-m --mount       QSPI Flash mount to system address 0x00.\n"
         "\t-p --property    Show QSPI Flash info \n"
         "\t-s --selftest    Run QSPI self test.\n"
-        "\t-r --read  [addr] [len]             Read QSPI flash.\n"
-        "\t-w --write [addr] [value]...[value] Write QSPI flash. Maximum a page (256 Byte)\n"
-        "\t-e --erase [addr]                   Erase a sub-sector (4kB) at certain address\n"
-        "\t--erase_sector [0~255] [sec_num]    Erase sectors (64kB) of QSPI Flash.\n"
-        "\t--erase_all                         Erase entire QSPI Flash.\n"
+        "\t-r --read  [addr] [len]\n"
+        "\t                 Read QSPI flash.\n"
+        "\t-w --write [addr] [value]...[value]\n"
+        "\t                 Write QSPI flash. Maximum a page (256 Byte)\n"
+        "\t-e --erase [addr]\n"
+        "\t                 Erase a sub-sector (4kB) at certain address\n"
+        "\t   --erase_sector [start_sec] [sec_num]\n"
+        "\t                 Erase sectors (64kB) of QSPI Flash.\n"
+        "\t   --erase_all   Erase entire QSPI Flash.\n"
+        "\t-c --copy  [src_addr] [dst_addr] [size]\n"
+        "\t                 Copy data from system memory to QSPI flash.\n"
         "\t-h --help        Show this help text.\n";
 
 extern int str_to_u8(char *str, uint8_t *value);
@@ -176,9 +182,32 @@ int cli_qspi(int argc, char **argv)
         CHECK_FUNC_EXIT(QSPI_OK, BSP_QSPI_Erase_Block(address));
 
     }
+    else if ((strcmp(argv[0], "-c") == 0) || (strcmp(argv[0], "--copy") == 0))
+    {
+        if ((argc < 3) || argv[1] == NULL)
+        {
+            return -1;
+        }
+
+        // Get Parameters
+        uint32_t src_addr = 0;
+        uint32_t dst_addr = 0;
+        uint32_t size = 0;
+
+        CHECK_FUNC_EXIT(0, str_to_u32(argv[1], &src_addr));
+        CHECK_FUNC_EXIT(0, str_to_u32(argv[2], &dst_addr));
+        CHECK_FUNC_EXIT(0, str_to_u32(argv[3], &size));
+
+        // Write QSPI
+        CHECK_FUNC_EXIT(QSPI_OK, BSP_QSPI_Write((uint8_t*)src_addr, dst_addr, size));
+
+        // Print Results
+        printf("Copy data [0x%lX] -> [0x%lX], size = %ld\n",src_addr,dst_addr,size);
+
+    }
     else if ((strcmp(argv[0], "-s") == 0) || (strcmp(argv[0], "--selftest") == 0))
     {
-        BSP_QSPI_Erase_Chip();
+        printf("QSPI Self Test. TBD...\n");
     }
     else if ((strcmp(argv[0], "-p") == 0) || (strcmp(argv[0], "--property") == 0))
     {
@@ -186,9 +215,9 @@ int cli_qspi(int argc, char **argv)
         BSP_QSPI_GetInfo(&info);
 
         printf("QSPI info:\n");
-        printf("FlashSize  = %ld kB\n", info.FlashSize / 1024);
-        printf("SectorSize = %ld kB\n", info.SectorSize / 1024);
-        printf("SectorNum  = %ld\n", info.SectorNumber);
+        printf("FlashSize       = %ld kB\n", info.FlashSize / 1024);
+        printf("SectorSize      = %ld kB\n", info.SectorSize / 1024);
+        printf("SectorNum       = %ld\n", info.SectorNumber);
         printf("EraseSectorSize = %ld kB\n", info.EraseSectorSize / 1024);
         printf("EraseSectorNum  = %ld\n", info.EraseSectorsNumber);
         printf("ProgPageSize    = %ld Byte\n", info.ProgPageSize);

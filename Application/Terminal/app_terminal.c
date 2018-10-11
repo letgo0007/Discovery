@@ -43,6 +43,7 @@ extern int cli_flash(int argc, char *argv[]);
 
 extern int cli_accel(int argc, char *argv[]);
 extern int cli_qspi(int argc, char *argv[]);
+extern int cli_idd(int argc, char *argv[]);
 
 /* Private variables ---------------------------------------------------------*/
 /*!@var Terminal Command List.
@@ -65,6 +66,7 @@ const Cli_CommandTypeDef gTermCommand[TERM_COMMAND_MAX] =
 { "", NULL, "\n💪 Device driver\n------------------------------" },
 { "accel", cli_accel, "Accelerometer commands" },
 { "qspi", cli_qspi, "Quad-SPI Flash commands." },
+{ "idd", cli_idd, "IDD current sensor commands." },
 { "", NULL, "\n------------------------------\r\n" },
 { NULL, NULL, NULL } };
 
