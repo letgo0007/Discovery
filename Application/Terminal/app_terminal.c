@@ -45,6 +45,8 @@ extern int cli_accel(int argc, char *argv[]);
 extern int cli_qspi(int argc, char *argv[]);
 extern int cli_idd(int argc, char *argv[]);
 
+extern int cli_os(int argc, char **argv);
+
 /* Private variables ---------------------------------------------------------*/
 /*!@var Terminal Command List.
  *
@@ -58,6 +60,7 @@ const Cli_CommandTypeDef gTermCommand[TERM_COMMAND_MAX] =
 { "repeat", cli_repeat, "Repeat running a command." },
 { "version", cli_ver, "Show Command version" },
 { "time", cli_time, "Test command execute time." },
+{ "os", cli_os, "FreeRTOS Commands" },
 { "", NULL, "\n💪 STM32 MCU basic commands\n------------------------------" },
 { "info", cli_info, "Show MCU information." },
 { "reset", cli_reset, "STM32 software reset." },
@@ -103,8 +106,8 @@ int term_history_push(Term_HandleTypeDef *TermHandle, int depth)
     uint32_t len = strlen(TermHandle->StrBuf) + 1;
     char *ptr = TermHandle->HistoryBuf[TermHandle->HistoryPushIndex];
 
-    //ptr = pvPortMalloc(len);
-    ptr = (char*) realloc(ptr, len);
+    ptr = pvPortMalloc(len);
+    //ptr = (char*) realloc(ptr, len);
     TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] = ptr;
 
     //Copy Command
@@ -114,8 +117,11 @@ int term_history_push(Term_HandleTypeDef *TermHandle, int depth)
     TermHandle->HistoryPullIndex = TermHandle->HistoryPushIndex;
     TermHandle->HistoryPushIndex = term_get_array_index(TermHandle->HistoryPushIndex, depth, TERM_HISTORY_DEPTH);
 
-    //vPortFree(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
-    free(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
+    if(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] != NULL)
+    {
+        vPortFree(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
+        //free(TermHandle->HistoryBuf[TermHandle->HistoryPushIndex]);
+    }
     TermHandle->HistoryBuf[TermHandle->HistoryPushIndex] = NULL;
 #endif
     return 0;
@@ -443,6 +449,10 @@ int App_Terminal_unregister()
     return 0;
 }
 
+/*!@brief Initialize Terminal.
+ *
+ * @return
+ */
 int App_Terminal_init(void)
 {
     Term_IO_init(&gTermHandle);
@@ -457,7 +467,10 @@ int App_Terminal_init(void)
     return 0;
 }
 
-/* Example of a Mini-Terminal */
+/*!@brief Terminal loop function.
+ *
+ * @return
+ */
 int App_Terminal_run(void)
 {
     static char sbuf[TERM_STRING_BUF_SIZE] =
@@ -490,5 +503,21 @@ int App_Terminal_run(void)
     fflush(stderr);
 
     return 0;
+}
+
+/*!@brief Terminal Task for RTOS.
+ *
+ * @param arguments
+ */
+void Task_Terminal(void const *arguments)
+{
+    App_Terminal_init();
+
+    for (;;)
+    {
+        App_Terminal_run();
+
+        osDelay(10);
+    }
 }
 

@@ -71,6 +71,7 @@ extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* USER CODE BEGIN FunctionPrototypes */
+extern void Task_Terminal(void const *arguments);
 
 /* USER CODE END FunctionPrototypes */
 
@@ -99,10 +100,12 @@ void MX_FREERTOS_Init(void)
     /* Create the thread(s) */
     /* definition and creation of defaultTask */
     osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
-    defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+    osThreadCreate(osThread(defaultTask), NULL);
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
+    osThreadDef(Terminal, Task_Terminal, osPriorityNormal, 0, 256);
+    osThreadCreate(osThread(Terminal), NULL);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
@@ -115,16 +118,12 @@ void StartDefaultTask(void const * argument)
 {
     /* init code for USB_DEVICE */
     MX_USB_DEVICE_Init();
-    App_Terminal_init();
 
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
     for (;;)
     {
-        App_Terminal_run();
-
         osDelay(10);
-
     }
     /* USER CODE END StartDefaultTask */
 }

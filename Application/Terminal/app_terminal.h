@@ -80,5 +80,6 @@ Term_HandleTypeDef gTermHandle;
 /* Functions ------------------------------------------------------------------*/
 int App_Terminal_init(void);
 int App_Terminal_run(void);
+void Task_Terminal(void const *arguments);
 
 #endif /* TERMINAL_H_ */

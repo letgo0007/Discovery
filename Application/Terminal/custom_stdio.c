@@ -53,13 +53,9 @@ uint32_t STDOUT_GetMemUsage(void)
 {
     uint16_t i = 0;
     uint32_t sum = 0;
-    for (i = STDOUT_TxQueueTail; i == STDOUT_TxQueueHead; i++)
+    for (i = 0; i < STDOUT_TX_QUEUE_SIZE; i++)
     {
         sum += STDOUT_TxQueueLen[i];
-        if (i == STDOUT_TX_QUEUE_SIZE)
-        {
-            i = 0;
-        }
     }
     return sum;
 }
@@ -74,9 +70,13 @@ uint32_t STDOUT_GetMemUsage(void)
 uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len)
 {
     // Check Queue & Memory usage. Wait here if they reach limit.
-    while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1) || (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE))
+    while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1))
     {
-        STDIO_DELAY(1);
+        STDIO_DELAY(10);
+    }
+    while (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE)
+    {
+        STDIO_DELAY(10);
     }
 
     // Request memory and buffer string. These memory should be set free in Print_TransmitCpltCallBack
