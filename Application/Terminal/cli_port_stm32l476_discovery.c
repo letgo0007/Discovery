@@ -42,8 +42,7 @@ static uint16_t            STDOUT_TxQueueTail                      = 0;
 
 extern int cli_reset(int argc, char **argv);
 extern int cli_info(int argc, char **argv);
-extern int cli_mem8(int argc, char **argv);
-extern int cli_mem32(int argc, char **argv);
+extern int cli_mem(int argc, char **argv);
 
 /*!@brief Get STDOUT transmit queue usage.
  *
@@ -78,10 +77,10 @@ uint32_t STDOUT_GetMemUsage(void) {
 uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len) {
     // Check Queue & Memory usage. Wait here if they reach limit.
     while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1)) {
-        STDIO_DELAY(10);
+        ;
     }
     while (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE) {
-        STDIO_DELAY(10);
+        ;
     }
 
     // Request memory and buffer string. These memory should be set free in
@@ -264,7 +263,7 @@ int cli_port_init() {
     // Register board command
     Cli_Register("info", "Show system info", &cli_info);
     Cli_Register("reset", "Reset MCU", &cli_reset);
-    Cli_Register("mem", "Memory write/read", &cli_mem8);
+    Cli_Register("mem", "Memory write/read", &cli_mem);
 
     return 0;
 }

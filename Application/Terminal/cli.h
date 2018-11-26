@@ -79,14 +79,12 @@ typedef struct {
 typedef struct {
     const char  ShortName; //!< Short name work with "-", e.g. 'h'
     const char *LongName;  //!< Long name work with "--", e.g. "help"
-    const int
-        ReturnVal; //!< Return value . Use short name would be the simplest way.
+    const int   ReturnVal; //!< Return value . Use short name would be the simplest way.
 } CliOption_TypeDef;
 
 /*! Variables ---------------------------------------------------------------*/
 /*! Functions ---------------------------------------------------------------*/
-int  Cli_Register(const char *name, const char *prompt,
-                  int (*func)(int, char **));
+int  Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));
 int  Cli_Unregister(const char *name);
 int  Cli_RunByArgs(int argcount, char **argbuf);
 int  Cli_RunByString(char *cmd);
