@@ -19,48 +19,54 @@
 #include "stm32l4xx_hal.h"
 #include "string.h"
 
-#define STDIN_RX_MEM_SIZE 1024   //!< STDIN input buffer size
+#define STDIN_RX_MEM_SIZE 256   //!< STDIN input buffer size
 #define STDOUT_TX_LINE_SIZE 256  //!< STDOUT Single line maximum length.
-#define STDOUT_TX_QUEUE_SIZE 256 //!< STDOUT Number of lines in queue.
-#define STDOUT_TX_MEM_SIZE 4096  //!< STDOUT total memory buffer usage.
+#define STDOUT_TX_QUEUE_SIZE 64 //!< STDOUT Number of lines in queue.
+#define STDOUT_TX_MEM_SIZE 1024  //!< STDOUT total memory buffer usage.
 
 #define STDIO_MALLOC(x) malloc(x)
 #define STDIO_FREE(x) free(x)
-#define STDIO_DELAY(x) osDelay(x)
 
 extern UART_HandleTypeDef  huart1;
 extern UART_HandleTypeDef  huart2;
 extern UART_HandleTypeDef  huart3;
-static UART_HandleTypeDef *STDIN_huart  = NULL; //!< STDIN UART handle
-static UART_HandleTypeDef *STDOUT_huart = NULL; //!< STDOUT UART handle
-static UART_HandleTypeDef *STDERR_huart = NULL; //!< STDERR UART handle
+static UART_HandleTypeDef *STDIN_huart                             = NULL; //!< STDIN UART handle
+static UART_HandleTypeDef *STDOUT_huart                            = NULL; //!< STDOUT UART handle
+static UART_HandleTypeDef *STDERR_huart                            = NULL; //!< STDERR UART handle
 static uint8_t             STDIN_RxBuf[STDIN_RX_MEM_SIZE]          = {0};
 static uint8_t *           STDOUT_TxQueuePtr[STDOUT_TX_QUEUE_SIZE] = {0};
 static uint16_t            STDOUT_TxQueueLen[STDOUT_TX_QUEUE_SIZE] = {0};
 static uint16_t            STDOUT_TxQueueHead                      = 0;
 static uint16_t            STDOUT_TxQueueTail                      = 0;
 
+/*! External CLI command
+ */
 extern int cli_reset(int argc, char **argv);
 extern int cli_info(int argc, char **argv);
 extern int cli_mem(int argc, char **argv);
+extern int cli_qspi(int argc, char **argv);
+extern int cli_os(int argc, char **argv);
+
 
 /*!@brief Get STDOUT transmit queue usage.
  *
  * @return Number of transmit already in queue.
  */
-uint32_t STDOUT_GetQueueUsage(void) {
-    return (STDOUT_TxQueueHead + STDOUT_TX_QUEUE_SIZE - STDOUT_TxQueueTail) %
-           STDOUT_TX_QUEUE_SIZE;
+uint32_t STDOUT_GetQueueUsage(void)
+{
+    return (STDOUT_TxQueueHead + STDOUT_TX_QUEUE_SIZE - STDOUT_TxQueueTail) % STDOUT_TX_QUEUE_SIZE;
 }
 
 /*!@brief Get STDOUT transmit queue memory usage.
  *
  * @return Number of bytes already in STDOUT output heap.
  */
-uint32_t STDOUT_GetMemUsage(void) {
+uint32_t STDOUT_GetMemUsage(void)
+{
     uint16_t i   = 0;
     uint32_t sum = 0;
-    for (i = 0; i < STDOUT_TX_QUEUE_SIZE; i++) {
+    for (i = 0; i < STDOUT_TX_QUEUE_SIZE; i++)
+    {
         sum += STDOUT_TxQueueLen[i];
     }
     return sum;
@@ -74,19 +80,23 @@ uint32_t STDOUT_GetMemUsage(void) {
  * @param len   Length of the string.
  * @return      Number of bytes is put into the queue head.
  */
-uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len) {
+uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len)
+{
     // Check Queue & Memory usage. Wait here if they reach limit.
-    while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1)) {
+    while ((STDOUT_GetQueueUsage() >= STDOUT_TX_QUEUE_SIZE - 1))
+    {
         ;
     }
-    while (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE) {
+    while (STDOUT_GetMemUsage() >= STDOUT_TX_MEM_SIZE)
+    {
         ;
     }
 
     // Request memory and buffer string. These memory should be set free in
     // Print_TransmitCpltCallBack
     uint8_t *pBuf = NULL;
-    do {
+    do
+    {
         pBuf = (uint8_t *)STDIO_MALLOC((size_t)len);
     } while (pBuf == NULL);
 
@@ -95,9 +105,8 @@ uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len) {
     // Set new Queue Head
     STDOUT_TxQueuePtr[STDOUT_TxQueueHead] = pBuf;
     STDOUT_TxQueueLen[STDOUT_TxQueueHead] = len;
-    STDOUT_TxQueueHead = (STDOUT_TxQueueHead == STDOUT_TX_QUEUE_SIZE - 1)
-                             ? 0
-                             : STDOUT_TxQueueHead + 1;
+    STDOUT_TxQueueHead =
+        (STDOUT_TxQueueHead == STDOUT_TX_QUEUE_SIZE - 1) ? 0 : STDOUT_TxQueueHead + 1;
 
     return len;
 }
@@ -107,13 +116,16 @@ uint32_t STDOUT_PushToQueueHead(char *str, uint16_t len) {
  * @param huart     Handle of target UART.
  * @return          Number of bytes is put into DMA.
  */
-uint32_t STDOUT_TransmitFromQueueTail(UART_HandleTypeDef *huart) {
+uint32_t STDOUT_TransmitFromQueueTail(UART_HandleTypeDef *huart)
+{
     uint8_t *pData = STDOUT_TxQueuePtr[STDOUT_TxQueueTail];
     uint32_t Len   = STDOUT_TxQueueLen[STDOUT_TxQueueTail];
 
     // Try transmit data if there are any.
-    if ((pData != NULL) && (Len > 0)) {
-        if (HAL_OK == HAL_UART_Transmit_DMA(huart, pData, Len)) {
+    if ((pData != NULL) && (Len > 0))
+    {
+        if (HAL_OK == HAL_UART_Transmit_DMA(huart, pData, Len))
+        {
             return Len;
         }
     }
@@ -121,15 +133,15 @@ uint32_t STDOUT_TransmitFromQueueTail(UART_HandleTypeDef *huart) {
     return 0;
 }
 
-void STDOUT_TransmitCpltCallBack(UART_HandleTypeDef *huart) {
+void STDOUT_TransmitCpltCallBack(UART_HandleTypeDef *huart)
+{
     // Free Current Buffer.
     STDIO_FREE((void *)STDOUT_TxQueuePtr[STDOUT_TxQueueTail]);
 
     STDOUT_TxQueuePtr[STDOUT_TxQueueTail] = NULL;
     STDOUT_TxQueueLen[STDOUT_TxQueueTail] = 0;
-    STDOUT_TxQueueTail = (STDOUT_TxQueueTail == STDOUT_TX_QUEUE_SIZE - 1)
-                             ? 0
-                             : STDOUT_TxQueueTail + 1;
+    STDOUT_TxQueueTail =
+        (STDOUT_TxQueueTail == STDOUT_TX_QUEUE_SIZE - 1) ? 0 : STDOUT_TxQueueTail + 1;
 
     // Trigger next transfer if needed
     STDOUT_TransmitFromQueueTail(huart);
@@ -143,19 +155,25 @@ void STDOUT_TransmitCpltCallBack(UART_HandleTypeDef *huart) {
  * @param len   length of read bytes
  * @return      Length of bytes actually read.
  */
-int _read(int file, char *ptr, int len) {
+int _read(int file, char *ptr, int len)
+{
 
-    if ((ptr == NULL) || (len == 0)) {
+    if ((ptr == NULL) || (len == 0))
+    {
         return 0;
     }
     // Loop get character
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++)
+    {
         static int idx = 0;
         char       c   = STDIN_RxBuf[idx];
 
-        if (c == 0) {
+        if (c == 0)
+        {
             *ptr = EOF;
-        } else {
+        }
+        else
+        {
             *ptr++ = c;
 
             // Clear current buffer and move forward.
@@ -178,14 +196,17 @@ int _read(int file, char *ptr, int len) {
  * @param len   Length of bytes
  * @return      Length of bytes actually transfered
  */
-int _write(int file, char *ptr, int len) {
+int _write(int file, char *ptr, int len)
+{
 
-    if ((ptr == NULL) || (len == 0)) {
+    if ((ptr == NULL) || (len == 0))
+    {
         return 0;
     }
 
     // STDOUT
-    if (file == 1) {
+    if (file == 1)
+    {
 
         STDOUT_PushToQueueHead(ptr, len);
         STDOUT_TransmitFromQueueTail(STDOUT_huart);
@@ -194,11 +215,12 @@ int _write(int file, char *ptr, int len) {
     }
 
     // STDERR
-    if (file == 2) {
+    if (file == 2)
+    {
         // Blocking transmit mode for STDERR ; Higher Priority than STDOUT.
         HAL_UART_AbortTransmit(STDERR_huart);
-        while (HAL_OK !=
-               HAL_UART_Transmit(STDERR_huart, (uint8_t *)ptr, len, 1 + len)) {
+        while (HAL_OK != HAL_UART_Transmit(STDERR_huart, (uint8_t *)ptr, len, 1 + len))
+        {
             ;
         }
         return len;
@@ -206,40 +228,56 @@ int _write(int file, char *ptr, int len) {
     return 0;
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == STDIN_huart->Instance) {
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == STDIN_huart->Instance)
+    {
         HAL_UART_Receive_DMA(STDIN_huart, STDIN_RxBuf, sizeof(STDIN_RxBuf));
     }
 }
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == STDOUT_huart->Instance) {
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == STDOUT_huart->Instance)
+    {
         STDOUT_TransmitCpltCallBack(huart);
     }
 }
 
-void cli_sleep(float s) {
-    osDelay(s * 1000);
+void cli_sleep(int ms)
+{
+    osDelay(ms);
 }
 
-unsigned int cli_gettick(void) {
+unsigned int cli_gettick(void)
+{
     return HAL_GetTick();
 }
 
-void *cli_malloc(size_t size) {
+void *cli_malloc(size_t size)
+{
+    if (size <= 0)
+    {
+        return NULL;
+    }
     void *ptr = NULL;
-    while (ptr == NULL) {
-        ptr = malloc(size);
+    while (ptr == NULL)
+    {
+        ptr = pvPortMalloc(size);
+        // ptr = malloc(size);
     }
     memset(ptr, 0, size);
     return ptr;
 }
 
-void cli_free(void *ptr) {
-    free(ptr);
+void cli_free(void *ptr)
+{
+    vPortFree(ptr);
+    // free(ptr);
 }
 
-int cli_port_init() {
+int cli_port_init()
+{
     // Set UART handle pointer
     STDIN_huart  = &huart2; //!< STDIN UART handle
     STDOUT_huart = &huart2; //!< STDOUT UART handle
@@ -253,7 +291,7 @@ int cli_port_init() {
     STDOUT_TxQueueTail = 0;
 
     // Set STDIO type and buffer size
-    setvbuf(stdout, (char *)NULL, _IOLBF, 1024);
+    setvbuf(stdout, (char *)NULL, _IOLBF, 256);
     setvbuf(stderr, (char *)NULL, _IONBF, 0);
     setvbuf(stdin, (char *)NULL, _IONBF, 0);
 
@@ -261,17 +299,20 @@ int cli_port_init() {
     HAL_UART_Receive_DMA(STDIN_huart, STDIN_RxBuf, sizeof(STDIN_RxBuf));
 
     // Register board command
-    Cli_Register("info", "Show system info", &cli_info);
-    Cli_Register("reset", "Reset MCU", &cli_reset);
+    Cli_Register("info", "MCU Information", &cli_info);
+    Cli_Register("reset", "MCU Reset", &cli_reset);
     Cli_Register("mem", "Memory write/read", &cli_mem);
-
+    Cli_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
+    Cli_Register("os", "RTOS operation", &cli_os);
     return 0;
 }
 
-void cli_port_deinit() {
+void cli_port_deinit()
+{
     ;
 }
 
-int cli_port_getc(void) {
+int cli_port_getc(void)
+{
     return getchar();
 }

@@ -22,7 +22,7 @@ TARGET = Discovery
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -O2	
+OPT = -O2
 
 
 #######################################
@@ -96,12 +96,12 @@ Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
-Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c  
+Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 
 
 include Drivers/EEPROM_Emul/subdir.mk
 include Drivers/BSP/STM32L476G-Discovery/subdir.mk
-include Application/Terminal/subdir.mk
+include Application/CLI/subdir.mk
 
 # ASM sources
 ASM_SOURCES =  \
@@ -128,7 +128,7 @@ GDB = $(PREFIX)gdb
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
- 
+
 #######################################
 # CFLAGS
 #######################################
@@ -146,7 +146,7 @@ MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
 # macros for gcc
 # AS defines
-AS_DEFS = 
+AS_DEFS =
 
 # C defines
 C_DEFS =  \
@@ -168,9 +168,10 @@ C_INCLUDES +=  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
 -IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
+-IDrivers/CMSIS/Include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
--IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
--IDrivers/CMSIS/Include
+-IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS
+
 
 
 # compile gcc flags
@@ -194,8 +195,8 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32L476VGTx_FLASH.ld
 
 # libraries
-LIBS = -lc -lm -lnosys 
-LIBDIR = 
+LIBS = -lc -lm -lnosys
+LIBDIR =
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
@@ -212,7 +213,7 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
+$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -224,36 +225,36 @@ $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
-	
+
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(BIN) $< $@	
-	
+	$(BIN) $< $@
+
 $(BUILD_DIR):
-	mkdir $@		
+	mkdir $@
 
 #######################################
 # Compile and download to unit
 #######################################
 install: all
-	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8000000 
+	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8000000
 
 install2: all
-	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8080000 
-	
+	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8080000
+
 clean_install: all
 	st-flash erase
-	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000 
+	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000
 	st-flash reset
 
 dual_install: all
 	st-flash erase
-	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000 
-	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8080000 
-	
+	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x8000000
+	st-flash --reset write $(BUILD_DIR)/$(TARGET).bin 0x8080000
+
 #######################################
 # Compile and start debug
 #######################################
-debug: all 
+debug: all
 	$(GDB) $(BUILD_DIR)/$(TARGET).elf -ex "tar ext :4242" -ex "load"
 
 #######################################
@@ -261,7 +262,7 @@ debug: all
 #######################################
 clean:
 	-rm -fR $(BUILD_DIR)
-  
+
 #######################################
 # dependencies
 #######################################

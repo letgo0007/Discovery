@@ -1,6 +1,7 @@
 #include "cli.h"
 #include "stdio.h"
 #include "stm32l4xx_hal.h"
+#include "stdlib.h"
 
 int cli_info(int argc, char *argv[])
 {
@@ -23,9 +24,9 @@ int cli_reset(int argc, char *argv[])
 {
     uint32_t delay = 10;
 
-    if (argc > 0)
+    if (argc > 1)
     {
-        delay = strtoul(argv[0], NULL, 0);
+        delay = strtol(argv[0], NULL, 0);
     }
 
     printf("\n\e[33mReset MCU in [%ld] ms!\e[0m\r\n", delay);

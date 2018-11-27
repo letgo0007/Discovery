@@ -79,7 +79,8 @@ extern void Cli_Task(void const *arguments);
 
 /* Init FreeRTOS */
 
-void MX_FREERTOS_Init(void) {
+void MX_FREERTOS_Init(void)
+{
     /* USER CODE BEGIN Init */
 
     /* USER CODE END Init */
@@ -103,7 +104,7 @@ void MX_FREERTOS_Init(void) {
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-    osThreadDef(cli, Cli_Task, osPriorityNormal, 0, 256);
+    osThreadDef(cli, Cli_Task, osPriorityHigh, 0, 256);
     osThreadCreate(osThread(cli), NULL);
     /* USER CODE END RTOS_THREADS */
 
@@ -113,14 +114,17 @@ void MX_FREERTOS_Init(void) {
 }
 
 /* StartDefaultTask function */
-void StartDefaultTask(void const *argument) {
+void StartDefaultTask(void const *argument)
+{
     /* init code for USB_DEVICE */
     MX_USB_DEVICE_Init();
 
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
-    for (;;) {
-        osDelay(10);
+    for (;;)
+    {
+        osDelay(1000);
+        //printf("Heart Beat!\r\n");
     }
     /* USER CODE END StartDefaultTask */
 }

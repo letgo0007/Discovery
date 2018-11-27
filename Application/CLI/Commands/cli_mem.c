@@ -65,38 +65,38 @@ int cli_mem(int argc, char **argv)
     const char *helptext = "mem command usage:\n"
                            "\t-w --write [addr] [value ...] Write a value to memory\n"
                            "\t-r --read  [addr] [len]       Read a value from memory\n"
+                           "\t-c --copy  [src] [dst] [len]  Memory copy\n"
                            "\t-h --help  Show this help text.\n";
 
     char *tail[1] = {0};
+    argc--;
+    argv++;
 
-    if ((argc <= 1) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))
+    if ((argc < 1) || (strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
     {
         printf("%s", helptext);
     }
-    else if ((strcmp(argv[1], "-w") == 0) || (strcmp(argv[1], "--write") == 0))
+    else if ((strcmp(argv[0], "-w") == 0) || (strcmp(argv[0], "--write") == 0))
     {
 
         // Check syntax
-        if ((argc <= 3) || (argv[2] == NULL) || (argv[3] == NULL))
+        if ((argc < 3) || (argv[1] == NULL) || (argv[2] == NULL))
         {
             goto syntax_error;
         }
 
         // Build buffer
-        uint32_t  len  = argc - 3;
-        uint32_t  addr = 0;
-        uint32_t *data = cli_malloc(len * sizeof(uint32_t));
-
-        // Get Parameters
-        addr = strtoul(argv[2], tail, 0);
+        uint32_t len  = argc - 2;
+        uint32_t addr = strtoul(argv[1], tail, 0);
         if (**tail != 0)
         {
             goto param_error;
         }
+        uint32_t *data = cli_malloc(len * sizeof(uint32_t));
 
         for (int i = 0; i < len; i++)
         {
-            *(data + i) = strtoul(argv[3 + i], tail, 0);
+            *(data + i) = strtoul(argv[2 + i], tail, 0);
             if (**tail != 0)
             {
                 goto param_error;
@@ -109,24 +109,20 @@ int cli_mem(int argc, char **argv)
         print_u32(data, len);
         cli_free(data);
     }
-    else if ((strcmp(argv[1], "-r") == 0) || (strcmp(argv[1], "--read") == 0))
+    else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--read") == 0))
     {
-
         // Check syntax
-        if ((argc <= 3) || (argv[2] == NULL) || (argv[3] == NULL))
+        if ((argc < 3) || (argv[1] == NULL) || (argv[2] == NULL))
         {
             goto syntax_error;
         }
         // Get Parameters
-        uint32_t len  = 0;
-        uint32_t addr = 0;
-
-        addr = strtoul(argv[2], tail, 0);
+        uint32_t addr = strtoul(argv[1], tail, 0);
         if (**tail != 0)
         {
             goto param_error;
         }
-        len = strtoul(argv[3], tail, 0);
+        uint32_t len = strtoul(argv[2], tail, 0);
         if (**tail != 0)
         {
             goto param_error;
@@ -135,6 +131,34 @@ int cli_mem(int argc, char **argv)
         // Print results
         printf("Memory Read @ 0x%08lX length = %ld\n", addr, len);
         print_u32((uint32_t *)(addr + ADDR_OFFSET), len);
+    }
+    else if ((strcmp(argv[0], "-c") == 0) || (strcmp(argv[0], "--copy") == 0))
+    {
+        // Check syntax
+        if ((argc < 3) || (argv[1] == NULL) || (argv[2] == NULL))
+        {
+            goto syntax_error;
+        }
+        // Get Parameters
+        uint32_t dst = strtoul(argv[1], tail, 0);
+        if (**tail != 0)
+        {
+            goto param_error;
+        }
+        uint32_t src = strtoul(argv[2], tail, 0);
+        if (**tail != 0)
+        {
+            goto param_error;
+        }
+        uint32_t len = strtoul(argv[3], tail, 0);
+        if (**tail != 0)
+        {
+            goto param_error;
+        }
+
+        // Print results
+        printf("Memory Copy from 0x%08lX to 0x%08lX, length = %ld\n", src, dst, len);
+        memcpy((void *)(dst + ADDR_OFFSET), (void *)(src + ADDR_OFFSET), len * sizeof(uint32_t));
     }
     else
     {

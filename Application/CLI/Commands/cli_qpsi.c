@@ -13,27 +13,19 @@
         }                                                                                          \
     } while (0)
 
-const char QSPI_HELPTEXT[] = "Quad-SPI Flash commands:\n"
-                             "\t-i --init        QSPI Flash initialize\n"
-                             "\t-m --mount       QSPI Flash mount to system address 0x00.\n"
-                             "\t-p --property    Show QSPI Flash info \n"
-                             "\t-s --selftest    Run QSPI self test.\n"
-                             "\t-r --read  [addr] [len]\n"
-                             "\t                 Read QSPI flash.\n"
-                             "\t-w --write [addr] [value]...[value]\n"
-                             "\t                 Write QSPI flash. Maximum a page (256 Byte)\n"
-                             "\t-e --erase [addr]\n"
-                             "\t                 Erase a sub-sector (4kB) at certain address\n"
-                             "\t   --erase_sector [start_sec] [sec_num]\n"
-                             "\t                 Erase sectors (64kB) of QSPI Flash.\n"
-                             "\t   --erase_all   Erase entire QSPI Flash.\n"
-                             "\t-c --copy  [src_addr] [dst_addr] [size]\n"
-                             "\t                 Copy data from system memory to QSPI flash.\n"
-                             "\t-h --help        Show this help text.\n";
+extern void *cli_malloc(size_t size);
+extern void  cli_free(void *ptr);
+extern void  print_u8(uint8_t *ptr, uint32_t len);
 
-extern int  str_to_u8(char *str, uint8_t *value);
-extern int  str_to_u32(char *str, uint32_t *value);
-extern void print_u8(uint32_t address, uint32_t len);
+void *cli_qspi_malloc(int size)
+{
+    return cli_malloc(size);
+}
+
+void cli_qspi_free(void *ptr)
+{
+    return cli_free(ptr);
+}
 
 int cli_qspi_selftest()
 {
@@ -47,7 +39,29 @@ int cli_qspi_selftest()
  */
 int cli_qspi(int argc, char **argv)
 {
-    uint8_t *pdata = NULL;
+    const char *QSPI_HELPTEXT = "Quad-SPI Flash commands:\n"
+                                "\t-i --init        QSPI Flash initialize\n"
+                                "\t-m --mount       QSPI Flash mount to system address 0x00.\n"
+                                "\t-p --property    Show QSPI Flash info \n"
+                                "\t-s --selftest    Run QSPI self test.\n"
+                                "\t-r --read  [addr] [len]\n"
+                                "\t                 Read QSPI flash.\n"
+                                "\t-w --write [addr] [value]...[value]\n"
+                                "\t                 Write QSPI flash. Maximum a page (256 Byte)\n"
+                                "\t-e --erase [addr]\n"
+                                "\t                 Erase a sub-sector (4kB) at certain address\n"
+                                "\t   --erase_sector [start_sec] [sec_num]\n"
+                                "\t                 Erase sectors (64kB) of QSPI Flash.\n"
+                                "\t   --erase_all   Erase entire QSPI Flash.\n"
+                                "\t-c --copy  [src_addr] [dst_addr] [size]\n"
+                                "\t                 Copy data from system memory to QSPI flash.\n"
+                                "\t-h --help        Show this help text.\n";
+
+    uint8_t *pdata   = NULL;
+    char *   tail[1] = {0};
+
+    argc--;
+    argv++;
 
     if ((argc == 0) || (strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
     {
@@ -70,54 +84,46 @@ int cli_qspi(int argc, char **argv)
     }
     else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--read") == 0))
     {
-        if ((argc < 2) || argv[1] == NULL)
+        if ((argc < 2) || argv[1] == NULL || argv[2] == NULL)
         {
-            return -1;
+            goto syntax_error;
         }
-
-        uint32_t addr = 0;
-        uint32_t size = 0;
 
         // Get Parameters
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[1], &addr));
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[2], &size));
+        uint32_t addr = strtoul(argv[1], tail, 0);
+        uint32_t size = strtoul(argv[2], tail, 0);
 
         // Prepare Buffer
-        pdata = (uint8_t *)malloc(size);
-        if (pdata == NULL)
+        if (size == 0)
         {
-            return -1;
+            goto syntax_error;
         }
+        pdata = (uint8_t *)cli_qspi_malloc(size);
 
         // Read Flash
         CHECK_FUNC_EXIT(QSPI_OK, BSP_QSPI_Read(pdata, addr, size));
 
         // Print Results & free buffer
         printf("Read QSPI @ addr[0x%lX], size=[%ld]\n", addr, size);
-        print_u8((uint32_t)pdata, size);
+        print_u8(pdata, size);
     }
     else if ((strcmp(argv[0], "-w") == 0) || (strcmp(argv[0], "--write") == 0))
     {
         if ((argc < 3) || argv[1] == NULL)
         {
-            return -1;
+            goto syntax_error;
         }
 
         // Get Parameters
-        uint32_t addr = 0;
+        uint32_t addr = strtoul(argv[1], tail, 0);
         uint16_t size = argc - 2;
-        str_to_u32(argv[1], &addr);
 
         // Prepare buffer and parse data
-        pdata = (uint8_t *)malloc(size);
-        if (pdata == NULL)
-        {
-            return -1;
-        }
+        pdata = (uint8_t *)cli_qspi_malloc(size);
 
         for (int i = 0; i < size; i++)
         {
-            *(pdata + i) = strtoul(argv[2 + i], NULL, 0);
+            *(pdata + i) = strtoul(argv[2 + i], tail, 0);
         }
 
         // Write Flash
@@ -125,7 +131,7 @@ int cli_qspi(int argc, char **argv)
 
         // Print Result
         printf("Write QSPI @ addr[0x%lX], length=[%d]\n", addr, size);
-        print_u8((uint32_t)pdata, size);
+        print_u8(pdata, size);
     }
     else if (strcmp(argv[0], "--erase_all") == 0)
     {
@@ -146,10 +152,8 @@ int cli_qspi(int argc, char **argv)
         BSP_QSPI_GetInfo(&info);
 
         // Get Sector ID
-        uint32_t sector_start = 0;
-        uint32_t sector_num   = 0;
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[1], &sector_start));
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[2], &sector_num));
+        uint32_t sector_start = strtoul(argv[1], tail, 0);
+        uint32_t sector_num   = strtoul(argv[2], tail, 0);
 
         printf("QSPI Erase Sector [0x%lX] ~ [0x%lX]\n", sector_start, sector_start + sector_num);
         for (uint32_t i = 0; i < sector_num; i++)
@@ -165,12 +169,11 @@ int cli_qspi(int argc, char **argv)
     {
         if ((argc < 2) || argv[1] == NULL)
         {
-            return -1;
+            goto syntax_error;
         }
 
         // Get Sector ID
-        uint32_t address = 0;
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[1], &address));
+        uint32_t address = strtoul(argv[1], tail, 0);
 
         // Erase Page
         printf("QSPI Erase @ [0x%lX]\n", address);
@@ -178,19 +181,15 @@ int cli_qspi(int argc, char **argv)
     }
     else if ((strcmp(argv[0], "-c") == 0) || (strcmp(argv[0], "--copy") == 0))
     {
-        if ((argc < 3) || argv[1] == NULL)
+        if ((argc < 3) || (argv[1] == NULL) || (argv[2] == NULL) || (argv[3] == NULL))
         {
-            return -1;
+            goto syntax_error;
         }
 
         // Get Parameters
-        uint32_t src_addr = 0;
-        uint32_t dst_addr = 0;
-        uint32_t size     = 0;
-
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[1], &src_addr));
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[2], &dst_addr));
-        CHECK_FUNC_EXIT(0, str_to_u32(argv[3], &size));
+        uint32_t src_addr = strtoul(argv[1], tail, 0);
+        uint32_t dst_addr = strtoul(argv[2], tail, 0);
+        uint32_t size     = strtoul(argv[3], tail, 0);
 
         // Write QSPI
         CHECK_FUNC_EXIT(QSPI_OK, BSP_QSPI_Write((uint8_t *)src_addr, dst_addr, size));
@@ -224,7 +223,11 @@ int cli_qspi(int argc, char **argv)
 exit:
     if (pdata != NULL)
     {
-        free(pdata);
+        cli_qspi_free(pdata);
     }
     return 0;
+
+syntax_error:
+    printf("\e[31mERROR: Unknown command syntax for [%s], try [-h].\e[0m\n", argv[0]);
+    return -1;
 }

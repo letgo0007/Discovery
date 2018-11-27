@@ -15,7 +15,7 @@
 /** Private defines ---------------------------------------------------------*/
 
 /** Private function prototypes ---------------------------------------------*/
-extern void         cli_sleep(int us);
+extern void         cli_sleep(int ms);
 extern unsigned int cli_gettick(void);
 extern void *       cli_malloc(size_t size);
 extern void         cli_free(void *ptr);
@@ -33,6 +33,8 @@ unsigned int        HistoryQueueTail = 0;    // History queue tail
 unsigned int        HistoryPullDepth = 0;    // History pull depth
 unsigned int        HistoryMemUsage  = 0;    // History total memory usage
 CliCommand_TypeDef *CliCommandList   = NULL; // CLI commands list pointer
+unsigned int        CliNumOfBuiltin  = 0;    // Number of built-in commands
+unsigned int        CliNumOfCommands = 0;    // Number of commands
 
 /** Functions ---------------------------------------------------------------*/
 /*!@brief Insert a char to a position of a string.
@@ -306,19 +308,32 @@ int handle_special_key(char c)
  */
 int builtin_help(int argc, char **argv)
 {
-    for (int i = 0; i < CLI_COMMAND_SIZE; i++)
+    printf("\r\nBuilt-in Commands [%d]:\n", CliNumOfBuiltin);
+    printf("-------------------------------------------\n");
+    for (int i = 0; i < CliNumOfBuiltin; i++)
     {
         if ((CliCommandList[i].Name != NULL) && (CliCommandList[i].Prompt != NULL))
         {
             printf("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
         }
     }
+
+    printf("\r\nRegistered Commands [%d]: \n", CliNumOfCommands - CliNumOfBuiltin);
+    printf("-------------------------------------------\n");
+    for (int i = CliNumOfBuiltin; i < CLI_COMMAND_SIZE; i++)
+    {
+        if ((CliCommandList[i].Name != NULL) && (CliCommandList[i].Prompt != NULL))
+        {
+            printf("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
+        }
+    }
+    printf("\n");
     return 0;
 }
 
 int builtin_version(int argc, char **argv)
 {
-    printf("---------------------------------\n");
+    printf("\r\n---------------------------------\n");
     printf("Command Line Interface %s\n", CLI_VERSION);
     printf("Compiler      = %s\n", __VERSION__);
     printf("Date/Time     = %s %s\n", __DATE__, __TIME__);
@@ -394,7 +409,7 @@ int builtin_test(int argc, char **args)
                                           {'h', "help", 'h'},
                                           {0, "", 0}};
 
-    char  c       = 0;
+    int   c       = 0;
     char *data[1] = {0};
 
     do
@@ -430,10 +445,11 @@ int builtin_test(int argc, char **args)
             break;
         }
         case '?':
+        default:
         {
-            printf("%sERROR: invalid option of [%s]%s\n", ANSI_RED, *data, ANSI_RESET);
+            printf("%sERROR: invalid option of [%s]%s\n", ANSI_RED,
+                   (*data == NULL ? "NULL" : *data), ANSI_RESET);
             return -1;
-            break;
         }
         }
 
@@ -447,8 +463,7 @@ int builtin_test(int argc, char **args)
  */
 int builtin_repeat(int argc, char **args)
 {
-    const char *helptext = "usage: repeat [num] \"command\"\n"
-                           "Press ESC or q to abort the process\n";
+    const char *helptext = "usage: repeat [num] \"command\"\n";
 
     if ((argc < 3) || (args == NULL))
     {
@@ -460,16 +475,6 @@ int builtin_repeat(int argc, char **args)
 
     for (unsigned int i = 1; i <= count; i++)
     {
-        char c = 0;
-        do
-        {
-            c = cli_port_getc();
-            if ((c == 'q') || (c == '\e'))
-            {
-                printf("\nUser abort!\n");
-                return 0;
-            }
-        } while (c != EOF);
 
         printf("-----\n%sRepeat %d/%d: [%s] %s\n", ANSI_BOLD, i, count, args[2], ANSI_RESET);
         int ret = Cli_RunByString(args[2]);
@@ -496,7 +501,7 @@ int builtin_sleep(int argc, char **args)
     }
 
     float sec = strtof(args[1], NULL);
-    cli_sleep(sec);
+    cli_sleep(sec * 1000);
 
     return 0;
 }
@@ -569,7 +574,7 @@ int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options
         op_ret  = '?';
     }
 
-    if ((op_argc > 0) && (op_idx < op_argc))
+    if ((op_argc > 0) && (op_idx < op_argc) && (op_args[op_idx] != NULL))
     {
         // Long options with "--"
         if ((args[op_idx][0] == '-') && (args[op_idx][1] == '-'))
@@ -627,8 +632,6 @@ int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options
 exit:
     op_idx++;
     return op_ret;
-
-    return 0;
 }
 
 /*!@brief Get a line for CLI.
@@ -644,7 +647,7 @@ char *cli_getline(void)
         return 0;
     }
 
-    int c = 0;
+    char c = 0;
 
     do
     {
@@ -713,7 +716,7 @@ char *cli_getline(void)
             break;
         }
         }
-    } while (c != EOF);
+    } while ((c != 0xFF) && (c != EOF));
 
     return NULL;
 }
@@ -820,6 +823,8 @@ int Cli_Register(const char *name, const char *prompt, int (*func)(int, char **)
             CliCommandList[i].Name   = name;
             CliCommandList[i].Prompt = prompt;
             CliCommandList[i].Func   = func;
+
+            CliNumOfCommands++;
             return i;
         }
     }
@@ -842,6 +847,8 @@ int Cli_Unregister(const char *name)
             CliCommandList[i].Name   = NULL;
             CliCommandList[i].Prompt = NULL;
             CliCommandList[i].Func   = NULL;
+
+            CliNumOfCommands--;
             return i;
         }
     }
@@ -927,13 +934,14 @@ int Cli_Init(void)
 #endif
 
     // Register built-in commands.
-    Cli_Register("help", "Show command & prompt.", &builtin_help);
+    Cli_Register("help", "Show list of commands & prompt.", &builtin_help);
     Cli_Register("history", "Show command history", &builtin_history);
-    Cli_Register("test", "Run a command parse example", &builtin_test);
-    Cli_Register("repeat", "Repeat run a command.", &builtin_repeat);
-    Cli_Register("sleep", "Sleep unit in ms", &builtin_sleep);
-    Cli_Register("time", "Run a command and print execute time", &builtin_time);
-    Cli_Register("version", "Print CLI version", &builtin_version);
+    Cli_Register("test", "CLI argument parse example", &builtin_test);
+    Cli_Register("repeat", "Repeat excution of a command", &builtin_repeat);
+    Cli_Register("sleep", "Suspend execution for an interval of time", &builtin_sleep);
+    Cli_Register("time", "Time command execution", &builtin_time);
+    Cli_Register("version", "Show CLI version", &builtin_version);
+    CliNumOfBuiltin = 7;
     // Initialize IO port
     cli_port_init();
 
@@ -978,9 +986,10 @@ int Cli_Run(void)
 void Cli_Task(void const *arguments)
 {
     Cli_Init();
-    while (1)
+    /* Infinite loop */
+    for (;;)
     {
         Cli_Run();
-        cli_sleep(1);
+        cli_sleep(10);
     }
 }
