@@ -37,31 +37,15 @@ BUILD_DIR = Build
 #source
 ######################################
 #C sources
-C_SOURCES +=  \
-USB_DEVICE/usb_device.c \
-USB_DEVICE/usbd_conf.c \
-USB_DEVICE/usbd_desc.c \
-USB_DEVICE/usbd_cdc_if.c \
-Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
-Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
-Middlewares/Third_Party/FreeRTOS/Source/list.c \
-Middlewares/Third_Party/FreeRTOS/Source/queue.c \
-Middlewares/Third_Party/FreeRTOS/Source/timers.c \
-Middlewares/Third_Party/FreeRTOS/Source/tasks.c \
-Middlewares/Third_Party/FreeRTOS/Source/event_groups.c \
-Middlewares/Third_Party/FreeRTOS/Source/croutine.c \
-Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
-Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
-Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+C_SOURCES +=
 
-
+include Application/CLI/subdir.mk
+include Boot/subdir.mk
 include Drivers/BSP/STM32L476G-Discovery/subdir.mk
 include Drivers/EEPROM_Emul/subdir.mk
 include Drivers/STM32L4xx_HAL_Driver/subdir.mk
-include Application/CLI/subdir.mk
-include Core/subdir.mk
+include Drivers/USB_DEVICE/subdir.mk
+include Middlewares/Third_Party/FreeRTOS/subdir.mk
 
 #ASM sources
 ASM_SOURCES =  \
@@ -120,15 +104,8 @@ AS_INCLUDES =  \
 -ICore/Inc
 
 #C includes
-C_INCLUDES +=  \
--IUSB_DEVICE \
--IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
--IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
--IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
--IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
--IDrivers/CMSIS/Include \
--IMiddlewares/Third_Party/FreeRTOS/Source/include \
--IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS
+C_INCLUDES +=  
+
 
 #compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
