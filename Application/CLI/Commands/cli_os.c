@@ -15,14 +15,21 @@ const char OS_HELPTEXT[] = "RTOS control commands:\n"
                            "\t-s --status      Show RTOS running status\n"
                            "\t-h --help        Show this help text";
 
-void Cus_vTaskGetRunTimeStats(char *pcWriteBuffer)
+const char *TaskStateStr[] = {
+    "Running",
+    "Ready",
+    "Blocked",
+    "Suspend",
+    "Deleted",
+    "Invalid"
+};
+
+
+int cli_top(int argc, char **argv)
 {
     TaskStatus_t *       pxTaskStatusArray;
     volatile UBaseType_t uxArraySize, x;
-    uint32_t             ulTotalRunTime, ulStatsAsPercentage;
-
-    // Make sure the write buffer does not contain a string.
-    *pcWriteBuffer = 0x00;
+    uint32_t             ulTotalRunTime;
 
     // Take a snapshot of the number of tasks in case it changes while this
     // function is executing.
@@ -43,30 +50,21 @@ void Cus_vTaskGetRunTimeStats(char *pcWriteBuffer)
         // Avoid divide by zero errors.
         if (ulTotalRunTime > 0)
         {
+            // Print Header
+            printf("PID  Task         State    RunTime  CPU%% Pri  Stack\n");
+
             // For each populated position in the pxTaskStatusArray array,
             // format the raw data as human readable ASCII data
             for (x = 0; x < uxArraySize; x++)
             {
-                // What percentage of the total run time has the task used?
-                // This will always be rounded down to the nearest integer.
-                // ulTotalRunTimeDiv100 has already been divided by 100.
-                ulStatsAsPercentage = pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime;
-
-                if (ulStatsAsPercentage > 0UL)
-                {
-                    sprintf(pcWriteBuffer, "%s\t\t%lu\t\t%lu%%\r\n",
-                            pxTaskStatusArray[x].pcTaskName, pxTaskStatusArray[x].ulRunTimeCounter,
-                            ulStatsAsPercentage);
-                }
-                else
-                {
-                    // If the percentage is zero here then the task has
-                    // consumed less than 1% of the total run time.
-                    sprintf(pcWriteBuffer, "%s\t\t%lu\t\t<1%%\r\n", pxTaskStatusArray[x].pcTaskName,
-                            pxTaskStatusArray[x].ulRunTimeCounter);
-                }
-
-                pcWriteBuffer += strlen((char *)pcWriteBuffer);
+                printf("%-4ld %-12s %-8s %-8ld %3ld%% %-4ld %-6d\r\n",
+                       pxTaskStatusArray[x].xTaskNumber, // Task ID
+                       pxTaskStatusArray[x].pcTaskName,  // Task Name
+                       TaskStateStr[pxTaskStatusArray[x].eCurrentState],
+                       pxTaskStatusArray[x].ulRunTimeCounter,                  // Task Run time
+                       pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime, // Run time %
+                       pxTaskStatusArray[x].uxCurrentPriority,                 // Priority
+                       pxTaskStatusArray[x].usStackHighWaterMark); // Stack High Water Mark
             }
         }
 
@@ -102,7 +100,7 @@ int cli_os(int argc, char **argv)
         printf("Lifetime Minimum    = %d B\n", xPortGetMinimumEverFreeHeapSize());
 
         char *buf = malloc(1024);
-        Cus_vTaskGetRunTimeStats(buf);
+        vTaskGetRunTimeStats(buf);
         printf("ThreadName      TotalRunTime\t%%\n");
         printf("%s", buf);
         free(buf);

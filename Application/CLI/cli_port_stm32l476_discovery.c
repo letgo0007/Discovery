@@ -21,8 +21,8 @@
 
 #define STDIN_RX_MEM_SIZE 256   //!< STDIN input buffer size
 #define STDOUT_TX_LINE_SIZE 256  //!< STDOUT Single line maximum length.
-#define STDOUT_TX_QUEUE_SIZE 64 //!< STDOUT Number of lines in queue.
-#define STDOUT_TX_MEM_SIZE 1024  //!< STDOUT total memory buffer usage.
+#define STDOUT_TX_QUEUE_SIZE 256 //!< STDOUT Number of lines in queue.
+#define STDOUT_TX_MEM_SIZE 4096  //!< STDOUT total memory buffer usage.
 
 #define STDIO_MALLOC(x) malloc(x)
 #define STDIO_FREE(x) free(x)
@@ -46,7 +46,7 @@ extern int cli_info(int argc, char **argv);
 extern int cli_mem(int argc, char **argv);
 extern int cli_qspi(int argc, char **argv);
 extern int cli_os(int argc, char **argv);
-
+extern int cli_top(int argc, char **argv);
 
 /*!@brief Get STDOUT transmit queue usage.
  *
@@ -211,6 +211,8 @@ int _write(int file, char *ptr, int len)
         STDOUT_PushToQueueHead(ptr, len);
         STDOUT_TransmitFromQueueTail(STDOUT_huart);
 
+        //CDC_Transmit_FS(ptr,len);
+
         return len;
     }
 
@@ -304,6 +306,7 @@ int cli_port_init()
     Cli_Register("mem", "Memory write/read", &cli_mem);
     Cli_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
     Cli_Register("os", "RTOS operation", &cli_os);
+    Cli_Register("top", "RTOS operation", &cli_top);
     return 0;
 }
 
