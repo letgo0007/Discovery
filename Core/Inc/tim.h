@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * File Name          : QUADSPI.h
+ * File Name          : TIM.h
  * Description        : This file provides code for the configuration
- *                      of the QUADSPI instances.
+ *                      of the TIM instances.
  ******************************************************************************
  * This notice applies to any and all portions of this file
  * that are not between comment pairs USER CODE BEGIN and
@@ -47,8 +47,8 @@
  ******************************************************************************
  */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __quadspi_H
-#define __quadspi_H
+#ifndef __tim_H
+#define __tim_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,13 +60,13 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern QSPI_HandleTypeDef hqspi;
+extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_QUADSPI_Init(void);
+void MX_TIM6_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -75,7 +75,7 @@ void MX_QUADSPI_Init(void);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__ quadspi_H */
+#endif /*__ tim_H */
 
 /**
  * @}

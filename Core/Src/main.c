@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file           : main.c
@@ -45,6 +46,8 @@
  *
  ******************************************************************************
  */
+/* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
@@ -53,15 +56,32 @@
 #include "i2c.h"
 #include "lcd.h"
 #include "quadspi.h"
+#include "rtc.h"
 #include "sai.h"
 #include "spi.h"
-#include "stm32l4xx_hal.h"
+#include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -73,20 +93,19 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
-
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
 /* USER CODE END PFP */
 
+/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
 /**
  * @brief  The application entry point.
- *
- * @retval None
+ * @retval int
  */
 int main(void)
 {
@@ -94,7 +113,7 @@ int main(void)
 
     /* USER CODE END 1 */
 
-    /* MCU Configuration----------------------------------------------------------*/
+    /* MCU Configuration--------------------------------------------------------*/
 
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
@@ -115,11 +134,13 @@ int main(void)
     MX_DMA_Init();
     MX_I2C1_Init();
     MX_I2C2_Init();
-    // MX_LCD_Init();
-    // MX_QUADSPI_Init();
-    MX_SAI1_Init();
+    MX_LCD_Init();
+    MX_QUADSPI_Init();
+    // MX_SAI1_Init();
     MX_SPI2_Init();
     MX_USART2_UART_Init();
+    MX_TIM6_Init();
+    MX_RTC_Init();
     /* USER CODE BEGIN 2 */
 
     /* USER CODE END 2 */
@@ -150,17 +171,14 @@ int main(void)
  */
 void SystemClock_Config(void)
 {
-
-    RCC_OscInitTypeDef       RCC_OscInitStruct;
-    RCC_ClkInitTypeDef       RCC_ClkInitStruct;
-    RCC_PeriphCLKInitTypeDef PeriphClkInit;
+    RCC_OscInitTypeDef       RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef       RCC_ClkInitStruct = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInit     = {0};
 
     /**Configure LSE Drive Capability
      */
     HAL_PWR_EnableBkUpAccess();
-
     __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
-
     /**Initializes the CPU, AHB and APB busses clocks
      */
     RCC_OscInitStruct.OscillatorType =
@@ -179,9 +197,8 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLR            = RCC_PLLR_DIV2;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
-        _Error_Handler(__FILE__, __LINE__);
+        Error_Handler();
     }
-
     /**Initializes the CPU, AHB and APB busses clocks
      */
     RCC_ClkInitStruct.ClockType =
@@ -193,9 +210,8 @@ void SystemClock_Config(void)
 
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
     {
-        _Error_Handler(__FILE__, __LINE__);
+        Error_Handler();
     }
-
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC | RCC_PERIPHCLK_USART2 |
                                          RCC_PERIPHCLK_SAI1 | RCC_PERIPHCLK_I2C1 |
                                          RCC_PERIPHCLK_I2C2 | RCC_PERIPHCLK_USB;
@@ -214,30 +230,17 @@ void SystemClock_Config(void)
     PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_SAI1CLK | RCC_PLLSAI1_48M2CLK;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
-        _Error_Handler(__FILE__, __LINE__);
+        Error_Handler();
     }
-
     /**Configure the main internal regulator output voltage
      */
     if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
     {
-        _Error_Handler(__FILE__, __LINE__);
+        Error_Handler();
     }
-
-    /**Configure the Systick interrupt time
-     */
-    HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
-
-    /**Configure the Systick
-     */
-    HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
     /**Enable MSI Auto calibration
      */
     HAL_RCCEx_EnableMSIPLLMode();
-
-    /* SysTick_IRQn interrupt configuration */
-    HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
 }
 
 /* USER CODE BEGIN 4 */
@@ -268,11 +271,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 /**
  * @brief  This function is executed in case of error occurrence.
- * @param  file: The file name as string.
- * @param  line: The line in file as a number.
  * @retval None
  */
-void _Error_Handler(char *file, int line)
+void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
@@ -290,7 +291,7 @@ void _Error_Handler(char *file, int line)
  * @param  line: assert_param error line source number
  * @retval None
  */
-void assert_failed(uint8_t *file, uint32_t line)
+void assert_failed(char *file, uint32_t line)
 {
     /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
@@ -298,13 +299,5 @@ void assert_failed(uint8_t *file, uint32_t line)
     /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/**
- * @}
- */
-
-/**
- * @}
- */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
  * @file    stm32l4xx_it.c
@@ -30,137 +31,68 @@
  *
  ******************************************************************************
  */
+/* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
-#include "stm32l4xx_hal.h"
-#include "stm32l4xx.h"
 #include "stm32l4xx_it.h"
 #include "cmsis_os.h"
+#include "main.h"
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+/* USER CODE END Includes */
 
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN TD */
+
+/* USER CODE END TD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
-extern I2C_HandleTypeDef hi2c1;
-extern I2C_HandleTypeDef hi2c2;
-extern DMA_HandleTypeDef hdma_quadspi;
+extern PCD_HandleTypeDef  hpcd_USB_OTG_FS;
+extern I2C_HandleTypeDef  hi2c1;
+extern I2C_HandleTypeDef  hi2c2;
+extern DMA_HandleTypeDef  hdma_quadspi;
 extern QSPI_HandleTypeDef hqspi;
-extern DMA_HandleTypeDef hdma_spi2_rx;
-extern DMA_HandleTypeDef hdma_spi2_tx;
-extern SPI_HandleTypeDef hspi2;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern DMA_HandleTypeDef hdma_usart2_tx;
+extern DMA_HandleTypeDef  hdma_spi2_rx;
+extern DMA_HandleTypeDef  hdma_spi2_tx;
+extern SPI_HandleTypeDef  hspi2;
+extern TIM_HandleTypeDef  htim6;
+extern DMA_HandleTypeDef  hdma_usart2_rx;
+extern DMA_HandleTypeDef  hdma_usart2_tx;
 extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef  htim7;
 
-extern TIM_HandleTypeDef htim7;
+/* USER CODE BEGIN EV */
+
+/* USER CODE END EV */
 
 /******************************************************************************/
-/*            Cortex-M4 Processor Interruption and Exception Handlers         */
+/*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
-
-void PrintCoreDump(uint32_t *sp)
-{
-    uint32_t cfsr = SCB->CFSR;
-    uint32_t hfsr = SCB->HFSR;
-    uint32_t mmfar = SCB->MMFAR;
-    uint32_t bfar = SCB->BFAR;
-
-    uint32_t r0 = sp[0];
-    uint32_t r1 = sp[1];
-    uint32_t r2 = sp[2];
-    uint32_t r3 = sp[3];
-    uint32_t r12 = sp[4];
-    uint32_t lr = sp[5];
-    uint32_t pc = sp[6];
-    uint32_t psr = sp[7];
-
-    fprintf(stderr, "ARM Cortex M4 Core Dump\n\n");
-
-    fprintf(stderr, "SCB->CFSR   0x%08lx\n", cfsr);
-    fprintf(stderr, "SCB->HFSR   0x%08lx\n", hfsr);
-    fprintf(stderr, "SCB->MMFAR  0x%08lx\n", mmfar);
-    fprintf(stderr, "SCB->BFAR   0x%08lx\n", bfar);
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "SP          0x%08lx\n", (uint32_t) sp);
-    fprintf(stderr, "R0          0x%08lx\n", r0);
-    fprintf(stderr, "R1          0x%08lx\n", r1);
-    fprintf(stderr, "R2          0x%08lx\n", r2);
-    fprintf(stderr, "R3          0x%08lx\n", r3);
-    fprintf(stderr, "R12         0x%08lx\n", r12);
-    fprintf(stderr, "LR          0x%08lx\n", lr);
-    fprintf(stderr, "PC          0x%08lx\n", pc);
-    fprintf(stderr, "PSR         0x%08lx\n", psr);
-
-    fprintf(stderr, "\nEnter Infinite Loop, please connect debugger.\n");
-
-    while (1)
-    {
-        ;
-    }
-}
-
-void HardFault_Handler()
-{
-    fprintf(stderr, "\e[31m***  Panic: HardFault_Handler!  ***\e[0m\n");
-
-    fprintf(stderr, "* Hard fault is usually triggered by accessing invalid address.\n");
-    fprintf(stderr, "* Please check MMFAR & BFAR in core dump.\n");
-
-    __asm volatile
-    (
-            "tst lr, #4             \n"
-            "ite eq                 \n"
-            "mrseq r0, msp          \n"
-            "mrsne r0, psp          \n"
-            "ldr r1, StackPointer   \n"
-            "bx r1                  \n"
-            "StackPointer: .word PrintCoreDump  \n"
-    );
-}
-
-void MemManage_Handler()
-{
-    fprintf(stderr, "\e[31m***  Panic: MemManage_Handler!  ***\e[0m\n");
-
-    while(1);
-}
-
-void BusFault_Handler()
-{
-    fprintf(stderr, "\e[31m***  Panic: BusFault_Handler!  ***\e[0m\n");
-
-    while(1);
-}
-
-void UsageFault_Handler(void)
-{
-    fprintf(stderr, "\e[31m***  Panic: UsageFault_Handler!  ***\e[0m\n");
-
-    while(1);
-}
-
-/**
- * @brief This function handles System tick timer.
- */
-void SysTick_Handler(void)
-{
-    /* USER CODE BEGIN SysTick_IRQn 0 */
-
-    /* USER CODE END SysTick_IRQn 0 */
-    osSystickHandler();
-    /* USER CODE BEGIN SysTick_IRQn 1 */
-
-    /* USER CODE END SysTick_IRQn 1 */
-}
-
-void WWDG_IRQHandler(void)
-{
-    fprintf(stderr, "\e[31m***  Panic: WWDG_IRQHandler!  ***\e[0m");
-
-    while(1);
-}
 
 /******************************************************************************/
 /* STM32L4xx Peripheral Interrupt Handlers                                    */
@@ -307,6 +239,21 @@ void USART2_IRQHandler(void)
     /* USER CODE BEGIN USART2_IRQn 1 */
 
     /* USER CODE END USART2_IRQn 1 */
+}
+
+/**
+ * @brief This function handles TIM6 global interrupt, DAC channel1 and channel2 underrun error
+ * interrupts.
+ */
+void TIM6_DAC_IRQHandler(void)
+{
+    /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+
+    /* USER CODE END TIM6_DAC_IRQn 0 */
+    HAL_TIM_IRQHandler(&htim6);
+    /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+
+    /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /**
