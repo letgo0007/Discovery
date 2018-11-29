@@ -946,8 +946,8 @@ int Cli_Init(void)
     // Initialize IO port
     cli_port_init();
 
+    // Show Version
     builtin_version(0, NULL);
-    printf("%s", CLI_PROMPT_CHAR);
     return CLI_OK;
 }
 
@@ -986,7 +986,10 @@ int Cli_Run(void)
 
 void Cli_Task(void const *arguments)
 {
+    // Initialize
     Cli_Init();
+    cli_sleep(1000);    //Wait 1s to start CLI
+
     /* Infinite loop */
     for (;;)
     {

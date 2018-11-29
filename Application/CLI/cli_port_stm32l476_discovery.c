@@ -278,6 +278,7 @@ extern int cli_qspi(int argc, char **argv);
 extern int cli_os(int argc, char **argv);
 extern int cli_top(int argc, char **argv);
 extern int cli_rtc(int argc, char **argv);
+extern int cli_nvram(int argc, char **argv);
 
 int cli_port_init()
 {
@@ -300,16 +301,18 @@ int cli_port_init()
 
     // Trigger UART receivign.
     HAL_UART_Receive_DMA(STDIN_huart, STDIN_RxBuf, sizeof(STDIN_RxBuf));
+    STDIN_RxBuf[0] = '\n';
 
     // Register board command
     Cli_Register("info", "MCU Information", &cli_info);
     Cli_Register("reset", "MCU Reset", &cli_reset);
     Cli_Register("mem", "Memory write/read", &cli_mem);
+    Cli_Register("nvram", "Non-Volatile RAM operation", &cli_nvram);
     Cli_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
     Cli_Register("os", "RTOS operation", &cli_os);
     Cli_Register("top", "RTOS operation", &cli_top);
     Cli_Register("rtc", "Real Time Clock operation", &cli_rtc);
-    
+
     return 0;
 }
 
