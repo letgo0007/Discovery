@@ -39,15 +39,6 @@ static uint16_t            STDOUT_TxQueueLen[STDOUT_TX_QUEUE_SIZE] = {0};
 static uint16_t            STDOUT_TxQueueHead                      = 0;
 static uint16_t            STDOUT_TxQueueTail                      = 0;
 
-/*! External CLI command
- */
-extern int cli_reset(int argc, char **argv);
-extern int cli_info(int argc, char **argv);
-extern int cli_mem(int argc, char **argv);
-extern int cli_qspi(int argc, char **argv);
-extern int cli_os(int argc, char **argv);
-extern int cli_top(int argc, char **argv);
-
 /*!@brief Get STDOUT transmit queue usage.
  *
  * @return Number of transmit already in queue.
@@ -278,6 +269,16 @@ void cli_free(void *ptr)
     // free(ptr);
 }
 
+/*! External CLI command
+ */
+extern int cli_reset(int argc, char **argv);
+extern int cli_info(int argc, char **argv);
+extern int cli_mem(int argc, char **argv);
+extern int cli_qspi(int argc, char **argv);
+extern int cli_os(int argc, char **argv);
+extern int cli_top(int argc, char **argv);
+extern int cli_rtc(int argc, char **argv);
+
 int cli_port_init()
 {
     // Set UART handle pointer
@@ -307,6 +308,8 @@ int cli_port_init()
     Cli_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
     Cli_Register("os", "RTOS operation", &cli_os);
     Cli_Register("top", "RTOS operation", &cli_top);
+    Cli_Register("rtc", "Real Time Clock operation", &cli_rtc);
+    
     return 0;
 }
 
