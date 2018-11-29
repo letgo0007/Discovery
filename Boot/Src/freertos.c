@@ -58,8 +58,8 @@
 /* USER CODE BEGIN Includes */
 #include "cli.h"
 #include "stdio.h"
+#include "stm32l476g_discovery.h"
 #include "usart.h"
-#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -86,13 +86,15 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 extern void Cli_Task(void const *arguments);
+extern void UsbLogger_Task(void const *arguments);
+extern void BoardDriver_Task(void const *arguments);
+extern void SimpleUI_Task(void const *arguments);
 
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const *argument);
 
-extern void MX_USB_DEVICE_Init(void);
-void        MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
  * @brief  FreeRTOS initialization
@@ -124,8 +126,19 @@ void MX_FREERTOS_Init(void)
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
+
+    osThreadDef(SIMPLE_UI, BoardDriver_Task, osPriorityNormal, 0, 256);
+    osThreadCreate(osThread(SIMPLE_UI), NULL);
+
     osThreadDef(CLI, Cli_Task, osPriorityLow, 0, 256);
     osThreadCreate(osThread(CLI), NULL);
+
+    osThreadDef(BOARD_DRIVER, SimpleUI_Task, osPriorityLow, 0, 256);
+    osThreadCreate(osThread(BOARD_DRIVER), NULL);
+
+    osThreadDef(USB_LOGGER, UsbLogger_Task, osPriorityHigh, 0, 256);
+    osThreadCreate(osThread(USB_LOGGER), NULL);
+
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
@@ -143,15 +156,16 @@ void MX_FREERTOS_Init(void)
 void StartDefaultTask(void const *argument)
 {
     /* init code for USB_DEVICE */
-    MX_USB_DEVICE_Init();
     osDelay(1000);
+    BSP_LED_Init(LED_RED);
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
     for (;;)
     {
-        CDC_Transmit_FS((uint8_t *)"Hello World\n", 12);
-        osDelay(1000);
+        // Default Task is a simple Heart Beat task
         // printf("Heart Beat!\r\n");
+        BSP_LED_Toggle(LED_RED);
+        osDelay(1000);
     }
     /* USER CODE END StartDefaultTask */
 }

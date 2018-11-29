@@ -39,7 +39,10 @@ BUILD_DIR = Build
 #C sources
 C_SOURCES +=
 
+include Application/BoardDriver/subdir.mk
 include Application/CLI/subdir.mk
+include Application/SimpleUI/subdir.mk
+include Application/UsbLogger/subdir.mk
 include Boot/subdir.mk
 include Drivers/BSP/STM32L476G-Discovery/subdir.mk
 include Drivers/EEPROM_Emul/subdir.mk
@@ -104,7 +107,7 @@ AS_INCLUDES =  \
 -ICore/Inc
 
 #C includes
-C_INCLUDES +=  
+C_INCLUDES +=
 
 
 #compile gcc flags
