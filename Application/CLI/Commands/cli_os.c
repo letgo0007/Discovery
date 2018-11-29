@@ -127,8 +127,8 @@ int cli_os(int argc, char **argv)
 
     const char *OS_HELPTEXT = "RTOS control commands:\n"
                               "\t-l --list      List RTOS threads\n"
-                              "\t-s --suspend   Suspend a thread by ID or Name\n"
-                              "\t-r --resume    Resume a thread by ID or Name\n"
+                              "\t-s --suspend [id|name] Suspend a thread by ID or Name\n"
+                              "\t-r --resume  [id|name] Resume a thread by ID or Name\n"
                               "\t-v --version   Show RTOS version\n"
                               "\t-h --help      Show this help text";
 

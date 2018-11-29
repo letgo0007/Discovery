@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include "stdlib.h"
 #include "stm32l476g_discovery_qspi.h"
 #include "string.h"

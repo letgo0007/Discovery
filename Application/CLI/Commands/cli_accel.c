@@ -1,4 +1,5 @@
 #include "accelero.h"
+#include "stdio.h"
 #include "stm32l476g_discovery_compass.h"
 #include "string.h"
 

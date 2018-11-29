@@ -139,7 +139,9 @@ standard names. */
 #define configUSE_TRACE_FACILITY 1
 
 #define configGENERATE_RUN_TIME_STATS 1
-#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() HAL_InitTick()
+
+#include "stm32l4xx_hal.h"
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() HAL_ResumeTick()
 #define portGET_RUN_TIME_COUNTER_VALUE() HAL_GetTick()
 
 /* USER CODE END Defines */
