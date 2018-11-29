@@ -10,26 +10,71 @@
 #include "stdlib.h"
 #include "string.h"
 
-const char OS_HELPTEXT[] = "RTOS control commands:\n"
-                           "\t-l --list        List RTOS threads.\n"
-                           "\t-s --status      Show RTOS running status\n"
-                           "\t-h --help        Show this help text";
+const char *TaskStateStr[] = {"Running", "Ready", "Blocked", "Suspend", "Deleted", "Invalid"};
 
-const char *TaskStateStr[] = {
-    "Running",
-    "Ready",
-    "Blocked",
-    "Suspend",
-    "Deleted",
-    "Invalid"
-};
+osThreadId get_threadid_by_name(char *name)
+{
+    TaskStatus_t *       pxTaskStatusArray;
+    volatile UBaseType_t uxArraySize, x;
+    uint32_t             ulTotalRunTime;
 
+    uxArraySize       = uxTaskGetNumberOfTasks();
+    pxTaskStatusArray = pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
+
+    if (pxTaskStatusArray != NULL)
+    {
+        uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, &ulTotalRunTime);
+        for (x = 0; x < uxArraySize; x++)
+        {
+            if (strcmp(name, pxTaskStatusArray[x].pcTaskName) == 0)
+            {
+                vPortFree(pxTaskStatusArray);
+                return pxTaskStatusArray[x].xHandle;
+            }
+        }
+    }
+
+    vPortFree(pxTaskStatusArray);
+    return 0;
+}
+
+osThreadId get_threadid_by_num(int num)
+{
+    TaskStatus_t *       pxTaskStatusArray;
+    volatile UBaseType_t uxArraySize, x;
+    uint32_t             ulTotalRunTime;
+
+    uxArraySize       = uxTaskGetNumberOfTasks();
+    pxTaskStatusArray = pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
+
+    if (pxTaskStatusArray != NULL)
+    {
+        uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, &ulTotalRunTime);
+        for (x = 0; x < uxArraySize; x++)
+        {
+            if (pxTaskStatusArray[x].xTaskNumber == num)
+            {
+                vPortFree(pxTaskStatusArray);
+                return pxTaskStatusArray[x].xHandle;
+            }
+        }
+    }
+
+    vPortFree(pxTaskStatusArray);
+    return 0;
+}
 
 int cli_top(int argc, char **argv)
 {
     TaskStatus_t *       pxTaskStatusArray;
     volatile UBaseType_t uxArraySize, x;
     uint32_t             ulTotalRunTime;
+
+    printf("Total Heap      = %d B\n", configTOTAL_HEAP_SIZE);
+    printf("Free Heap       = %d B\n", xPortGetFreeHeapSize());
+    printf("Low Watermark   = %d B\n", xPortGetMinimumEverFreeHeapSize());
+    printf("---------------------------------------------------\n");
+
 
     // Take a snapshot of the number of tasks in case it changes while this
     // function is executing.
@@ -51,14 +96,14 @@ int cli_top(int argc, char **argv)
         if (ulTotalRunTime > 0)
         {
             // Print Header
-            printf("PID  Task         State    RunTime  CPU%% Pri  Stack\n");
+            printf("ID   Name         State    RunTime  CPU%% Pri  Stack\n");
 
             // For each populated position in the pxTaskStatusArray array,
             // format the raw data as human readable ASCII data
             for (x = 0; x < uxArraySize; x++)
             {
                 printf("%-4ld %-12s %-8s %-8ld %3ld%% %-4ld %-6d\r\n",
-                       pxTaskStatusArray[x].xTaskNumber, // Task ID
+                       pxTaskStatusArray[x].xTaskNumber, // Task Number
                        pxTaskStatusArray[x].pcTaskName,  // Task Name
                        TaskStateStr[pxTaskStatusArray[x].eCurrentState],
                        pxTaskStatusArray[x].ulRunTimeCounter,                  // Task Run time
@@ -71,12 +116,21 @@ int cli_top(int argc, char **argv)
         // The array is no longer needed, free the memory it consumes.
         vPortFree(pxTaskStatusArray);
     }
+
+    return 0;
 }
 
 int cli_os(int argc, char **argv)
 {
     argc--;
     argv++;
+
+    const char *OS_HELPTEXT = "RTOS control commands:\n"
+                              "\t-l --list      List RTOS threads\n"
+                              "\t-s --suspend   Suspend a thread by ID or Name\n"
+                              "\t-r --resume    Resume a thread by ID or Name\n"
+                              "\t-v --version   Show RTOS version\n"
+                              "\t-h --help      Show this help text";
 
     if ((argc == 0) || (strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0))
     {
@@ -86,24 +140,71 @@ int cli_os(int argc, char **argv)
 
     if ((strcmp(argv[0], "-l") == 0) || (strcmp(argv[0], "--list") == 0))
     {
-        uint8_t *buf = malloc(1024);
-        osThreadList(buf);
-        printf("ThreadName      Stat\tPri.\tStack\tId\n");
-        printf("%s", buf);
-        free(buf);
+        cli_top(argc, argv);
     }
-    else if ((strcmp(argv[0], "-s") == 0) || (strcmp(argv[0], "--status") == 0))
+    else if ((strcmp(argv[0], "-s") == 0) || (strcmp(argv[0], "--suspend") == 0))
     {
+        if ((argc < 2) || (argv[1] == NULL))
+        {
+            goto syntax_error;
+        }
+        osThreadId thread_id = 0;
+        char *     tail[1]   = {0};
+        uint32_t   num       = strtol(argv[1], tail, 0);
 
-        printf("Total Heap          = %d B\n", configTOTAL_HEAP_SIZE);
-        printf("Current Free Heap   = %d B\n", xPortGetFreeHeapSize());
-        printf("Lifetime Minimum    = %d B\n", xPortGetMinimumEverFreeHeapSize());
+        if (**tail != 0)
+        {
+            thread_id = get_threadid_by_name(argv[1]);
+        }
+        else
+        {
+            thread_id = get_threadid_by_num(num);
+        }
 
-        char *buf = malloc(1024);
-        vTaskGetRunTimeStats(buf);
-        printf("ThreadName      TotalRunTime\t%%\n");
-        printf("%s", buf);
-        free(buf);
+        if (thread_id == 0)
+        {
+            goto invalid_thread;
+        }
+        else
+        {
+            osThreadSuspend(thread_id);
+            printf("Suspend Thread [ %s ]\n", argv[1]);
+        }
+    }
+    else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--resume") == 0))
+    {
+        if ((argc < 2) || (argv[1] == NULL))
+        {
+            goto syntax_error;
+        }
+        osThreadId thread_id = 0;
+        char *     tail[1]   = {0};
+        uint32_t   num       = strtol(argv[1], tail, 0);
+
+        if (**tail != 0)
+        {
+            thread_id = get_threadid_by_name(argv[1]);
+        }
+        else
+        {
+            thread_id = get_threadid_by_num(num);
+        }
+
+        if (thread_id == 0)
+        {
+            goto invalid_thread;
+        }
+        else
+        {
+            osThreadResume(thread_id);
+            printf("Resume Thread [ %s ]\n", argv[1]);
+        }
+    }
+    else if ((strcmp(argv[0], "-v") == 0) || (strcmp(argv[0], "--version") == 0))
+    {
+        printf("FreeRTOS    :%s\n", tskKERNEL_VERSION_NUMBER);
+        printf("CMSIS Kernel:0x%X\n", osCMSIS_KERNEL);
+        printf("CMSIS API   :0x%X\n", osCMSIS);
     }
     else
     {
@@ -111,4 +212,12 @@ int cli_os(int argc, char **argv)
     }
 
     return 0;
+
+syntax_error:
+    printf("\e[31mERROR: Command Syntax error, try [--help].\e[0m\n");
+    return -1;
+
+invalid_thread:
+    printf("\e[31mERROR: Can't find thread [%s], try [--list].\e[0m\n", argv[1]);
+    return -1;
 }
