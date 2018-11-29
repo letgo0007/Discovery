@@ -899,11 +899,12 @@ int Cli_RunByString(char *cmd)
         return CLI_FAIL;
     }
 
-    // Buffer string
-    char *sub_cmd = cli_malloc(strlen(cmd) + 1);
-    strcpy(sub_cmd, cmd);
+    // Buffer string before run command
+    char *cmd_buf = cli_malloc(strlen(cmd) + 1);
+    strcpy(cmd_buf, cmd);
 
     // Loop until all string is processed.
+    char *sub_cmd = cmd_buf;
     do
     {
         // String to arguments
@@ -917,7 +918,7 @@ int Cli_RunByString(char *cmd)
 
     } while (sub_cmd != NULL);
 
-    cli_free(sub_cmd);
+    cli_free(cmd_buf);
     return CLI_OK;
 }
 
