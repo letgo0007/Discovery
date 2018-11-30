@@ -79,6 +79,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+QueueHandle_t xQueueUsbTx;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -127,22 +128,22 @@ void MX_FREERTOS_Init(void)
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
 
-    osThreadDef(SIMPLE_UI, BoardDriver_Task, osPriorityNormal, 0, 256);
+    osThreadDef(SIMPLE_UI, BoardDriver_Task, osPriorityNormal, 0, 128);
     osThreadCreate(osThread(SIMPLE_UI), NULL);
 
     osThreadDef(CLI, Cli_Task, osPriorityLow, 0, 256);
     osThreadCreate(osThread(CLI), NULL);
 
-    osThreadDef(BOARD_DRIVER, SimpleUI_Task, osPriorityLow, 0, 256);
+    osThreadDef(BOARD_DRIVER, SimpleUI_Task, osPriorityLow, 0, 128);
     osThreadCreate(osThread(BOARD_DRIVER), NULL);
 
-    osThreadDef(USB_LOGGER, UsbLogger_Task, osPriorityHigh, 0, 256);
+    osThreadDef(USB_LOGGER, UsbLogger_Task, osPriorityHigh, 0, 128);
     osThreadCreate(osThread(USB_LOGGER), NULL);
 
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
-    /* add queues, ... */
+    xQueueUsbTx = xQueueCreate(256, sizeof(char *));
     /* USER CODE END RTOS_QUEUES */
 }
 
