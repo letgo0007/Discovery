@@ -79,10 +79,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-QueueHandle_t xQueueUsbTx;
+QueueHandle_t xQueueUsbTx = NULL;
 
 /* USER CODE END Variables */
-osThreadId defaultTaskHandle;
+osThreadId defaultTaskHandle  = NULL;
+osThreadId BoardDriver_Handle = NULL;
+osThreadId Cli_Handle         = NULL;
+osThreadId SimpleUI_Handle    = NULL;
+osThreadId UsbLogger_Handle   = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -94,8 +98,6 @@ extern void SimpleUI_Task(void const *arguments);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const *argument);
-
-void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
  * @brief  FreeRTOS initialization
@@ -128,17 +130,17 @@ void MX_FREERTOS_Init(void)
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
 
-    osThreadDef(SIMPLE_UI, BoardDriver_Task, osPriorityNormal, 0, 128);
-    osThreadCreate(osThread(SIMPLE_UI), NULL);
+    osThreadDef(BoardDriver, BoardDriver_Task, osPriorityNormal, 0, 128);
+    BoardDriver_Handle = osThreadCreate(osThread(BoardDriver), NULL);
 
     osThreadDef(CLI, Cli_Task, osPriorityLow, 0, 256);
-    osThreadCreate(osThread(CLI), NULL);
+    Cli_Handle = osThreadCreate(osThread(CLI), NULL);
 
-    osThreadDef(BOARD_DRIVER, SimpleUI_Task, osPriorityLow, 0, 128);
-    osThreadCreate(osThread(BOARD_DRIVER), NULL);
+    osThreadDef(SimpleUI, SimpleUI_Task, osPriorityLow, 0, 128);
+    SimpleUI_Handle = osThreadCreate(osThread(SimpleUI), NULL);
 
-    osThreadDef(USB_LOGGER, UsbLogger_Task, osPriorityHigh, 0, 128);
-    osThreadCreate(osThread(USB_LOGGER), NULL);
+    osThreadDef(UsbLogger, UsbLogger_Task, osPriorityHigh, 0, 128);
+    UsbLogger_Handle = osThreadCreate(osThread(UsbLogger), NULL);
 
     /* USER CODE END RTOS_THREADS */
 

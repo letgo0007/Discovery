@@ -987,8 +987,10 @@ int Cli_Run(void)
 void Cli_Task(void const *arguments)
 {
     // Initialize
+    cli_sleep(1);
     Cli_Init();
-    cli_sleep(1000);    //Wait 1s to start CLI
+    printf("[%8ld]Init Finish:\t%s\t%s:%d\n", cli_gettick(), __FUNCTION__, __FILE__, __LINE__);
+    cli_sleep(1000); // Wait 1s to start CLI
 
     /* Infinite loop */
     for (;;)
