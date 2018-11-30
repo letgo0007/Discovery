@@ -21,7 +21,7 @@
 #define NVRAM_PRINT(msg, args...)                                                                  \
     do                                                                                             \
     {                                                                                              \
-        fprintf(stdout, "%s: " msg, __FILE__, ##args);                                             \
+        fprintf(stdout, "<%s:%d> " msg, __FILE__, __LINE__, ##args);                               \
     } while (0)
 
 // Error Message output, with RED color.
@@ -68,7 +68,7 @@ const uint16_t Nvram_VirtualTab[] = {
 int Bsp_Nvram_init()
 {
     // Information print
-    Bsp_Nvram_info();
+    // Bsp_Nvram_info();
 
 #if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
 

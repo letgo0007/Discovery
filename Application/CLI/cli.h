@@ -62,6 +62,34 @@
 #define HISTORY_DEPTH 32     //!< Maximum number of command saved in history
 #define HISTORY_MEM_SIZE 256 //!< Maximum RAM usage for history
 
+// General Print
+#define CLI_PRINT(msg, args...)                                                                    \
+    if (CLI_DEBUG_LEVEL >= 0)                                                                      \
+    {                                                                                              \
+        fprintf(stdout, msg, ##args);                                                              \
+    }
+
+// Error Message output, with RED color.
+#define CLI_ERROR(msg, args...)                                                                    \
+    if (CLI_DEBUG_LEVEL >= 1)                                                                      \
+    {                                                                                              \
+        fprintf(stderr, "\e[31m<%s:%d> " msg "\e[0m", __FILE__, __LINE__, ##args);                 \
+    }
+
+// Warning Message output, with Yellow color.
+#define CLI_WARNING(msg, args...)                                                                  \
+    if (CLI_DEBUG_LEVEL >= 2)                                                                      \
+    {                                                                                              \
+        fprintf(stdout, "\e[33m<%s:%d> " msg "\e[0m", __FILE__, __LINE__, ##args);                 \
+    }
+
+// Warning Message output, with Green color.
+#define CLI_INFO(msg, args...)                                                                     \
+    if (CLI_DEBUG_LEVEL >= 3)                                                                      \
+    {                                                                                              \
+        fprintf(stdout, "\e[35m" msg "\e[0m", ##args);                                             \
+    }
+
 /*!@typedef CliCommand_TypeDef
  *          Structure for a CLI command.
  */
@@ -83,6 +111,11 @@ typedef struct {
 } CliOption_TypeDef;
 
 /*! Variables ---------------------------------------------------------------*/
+extern int CLI_DEBUG_LEVEL; /*!< -1: Turn off all print                */
+                            /*!< 0: PRINT only, no debug info.         */
+                            /*!< 1: PRINT + ERROR                      */
+                            /*!< 2: PRINT + ERROR + WARNING            */
+                            /*!< 3: PRINT + ERROR + WARNING + INFO     */
 /*! Functions ---------------------------------------------------------------*/
 int  Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));
 int  Cli_Unregister(const char *name);

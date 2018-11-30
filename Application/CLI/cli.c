@@ -9,9 +9,11 @@
 /** Includes ----------------------------------------------------------------*/
 
 #include "cli.h"
+#include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+
 /** Private defines ---------------------------------------------------------*/
 
 /** Private function prototypes ---------------------------------------------*/
@@ -25,6 +27,7 @@ extern int          cli_port_getc(void);
 extern int          cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[]);
 
 /** Variables ---------------------------------------------------------------*/
+int                 CLI_DEBUG_LEVEL  = 3;    // Print debug level
 char *              StringPtr        = NULL; // Command String buffer pointer
 unsigned int        StringIdx        = 0;    // Command string index
 char **             HistoryPtr       = NULL; // History pointer buffer pointer
@@ -93,8 +96,8 @@ char *delete_char(char *string, int pos)
 void print_newline(char *string, int pos)
 {
     // Erase terminal line, print new buffer string and Move cursor
-    printf("%s\r%s%s", ANSI_ERASE_LINE, CLI_PROMPT_CHAR, string);
-    printf("\e[%luG", (uint32_t)pos + strlen(CLI_PROMPT_CHAR) + 1);
+    CLI_PRINT("%s\r%s%s", ANSI_ERASE_LINE, CLI_PROMPT_CHAR, string);
+    CLI_PRINT("\e[%luG", (uint32_t)pos + strlen(CLI_PROMPT_CHAR) + 1);
 }
 
 /*!@brief Clear history buffer & heap.
@@ -276,7 +279,7 @@ int handle_special_key(char c)
             if (StringPtr[StringIdx] != 0)
             {
                 StringIdx++;
-                printf("%s", ANSI_CURSOR_RIGHT);
+                CLI_PRINT("%s", ANSI_CURSOR_RIGHT);
             }
         }
         else if (strcmp(EscBuf, ANSI_CURSOR_LEFT) == 0) //!< Left arrow
@@ -284,7 +287,7 @@ int handle_special_key(char c)
             if (StringIdx > 0)
             {
                 StringIdx--;
-                printf("%s", ANSI_CURSOR_LEFT);
+                CLI_PRINT("%s", ANSI_CURSOR_LEFT);
             }
         }
 
@@ -308,36 +311,36 @@ int handle_special_key(char c)
  */
 int builtin_help(int argc, char **argv)
 {
-    printf("\r\nBuilt-in Commands [%d]:\n", CliNumOfBuiltin);
-    printf("-------------------------------------------\n");
+    CLI_PRINT("\r\nBuilt-in Commands [%d]:\n", CliNumOfBuiltin);
+    CLI_PRINT("-------------------------------------------\n");
     for (int i = 0; i < CliNumOfBuiltin; i++)
     {
         if ((CliCommandList[i].Name != NULL) && (CliCommandList[i].Prompt != NULL))
         {
-            printf("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
+            CLI_PRINT("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
         }
     }
 
-    printf("\r\nRegistered Commands [%d]: \n", CliNumOfCommands - CliNumOfBuiltin);
-    printf("-------------------------------------------\n");
+    CLI_PRINT("\r\nRegistered Commands [%d]: \n", CliNumOfCommands - CliNumOfBuiltin);
+    CLI_PRINT("-------------------------------------------\n");
     for (int i = CliNumOfBuiltin; i < CLI_COMMAND_SIZE; i++)
     {
         if ((CliCommandList[i].Name != NULL) && (CliCommandList[i].Prompt != NULL))
         {
-            printf("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
+            CLI_PRINT("%-12s%s\n", CliCommandList[i].Name, CliCommandList[i].Prompt);
         }
     }
-    printf("\n");
+    CLI_PRINT("\n");
     return 0;
 }
 
 int builtin_version(int argc, char **argv)
 {
-    printf("\r\n---------------------------------\n");
-    printf("Command Line Interface %s\n", CLI_VERSION);
-    printf("Compiler      = %s\n", __VERSION__);
-    printf("Date/Time     = %s %s\n", __DATE__, __TIME__);
-    printf("---------------------------------\n");
+    CLI_PRINT("\r\n---------------------------------\n");
+    CLI_PRINT("Command Line Interface %s\n", CLI_VERSION);
+    CLI_PRINT("Compiler      = %s\n", __VERSION__);
+    CLI_PRINT("Date/Time     = %s %s\n", __DATE__, __TIME__);
+    CLI_PRINT("---------------------------------\n");
     return 0;
 }
 
@@ -352,41 +355,41 @@ int builtin_history(int argc, char **args)
                            "\t-h --help  Show this help text.\n";
 
 #if HISTORY_ENABLE == 0
-    printf("History is function disabled.\n");
+    CLI_PRINT("History is function disabled.\n");
     return -1;
 #endif
 
     if ((argc < 2) || (args[argc - 1] == NULL))
     {
-        printf("%s", helptext);
+        CLI_PRINT("%s", helptext);
         return -1;
     }
 
     if ((strcmp("-d", args[1]) == 0) || (strcmp("--dump", args[1]) == 0))
     {
-        printf("History Mem Usage = %d\n", HistoryMemUsage);
-        printf("History dump:\n");
-        printf("Index  Address    Command\n");
-        printf("-------------------------\n");
+        CLI_PRINT("History Mem Usage = %d\n", HistoryMemUsage);
+        CLI_PRINT("History dump:\n");
+        CLI_PRINT("Index  Address    Command\n");
+        CLI_PRINT("-------------------------\n");
         for (int i = HistoryQueueTail; i < HistoryQueueHead; i++)
         {
             int j = i % HISTORY_DEPTH;
-            printf("%-6d 0x%08X %s\n", i, (int)HistoryPtr[j],
-                   (HistoryPtr[j] == NULL) ? "NULL" : HistoryPtr[j]);
+            CLI_PRINT("%-6d 0x%08X %s\n", i, (int)HistoryPtr[j],
+                      (HistoryPtr[j] == NULL) ? "NULL" : HistoryPtr[j]);
         }
     }
     else if ((strcmp("-c", args[1]) == 0) || (strcmp("--clear", args[1]) == 0))
     {
-        printf("History clear!\n");
+        CLI_PRINT("History clear!\n");
         history_clear();
     }
     else if ((strcmp("-h", args[1]) == 0) || (strcmp("--help", args[1]) == 0))
     {
-        printf("%s", helptext);
+        CLI_PRINT("%s", helptext);
     }
     else
     {
-        printf("\%sERROR: invalid option of [%s]%s\n", ANSI_RED, args[1], ANSI_RESET);
+        CLI_ERROR("ERROR: invalid option of [%s]\n", args[1]);
     }
 
     return 0;
@@ -397,10 +400,10 @@ int builtin_history(int argc, char **args)
  */
 int builtin_test(int argc, char **args)
 {
-    printf("Argc = %d\n", argc);
+    CLI_PRINT("Argc = %d\n", argc);
     for (int i = 0; i < argc; i++)
     {
-        printf("Args[%d] = %s\n", i, args[i] == NULL ? "NULL" : args[i]);
+        CLI_PRINT("Args[%d] = %s\n", i, args[i] == NULL ? "NULL" : args[i]);
     }
 
     static CliOption_TypeDef options[] = {{'i', "integer", 'i'},
@@ -422,7 +425,7 @@ int builtin_test(int argc, char **args)
         {
             if (*data != NULL)
             {
-                printf("Get Integer value of [%s]\n", *data);
+                CLI_PRINT("Get Integer value of [%s]\n", *data);
             }
             break;
         }
@@ -430,25 +433,24 @@ int builtin_test(int argc, char **args)
         {
             if (*data != NULL)
             {
-                printf("Get String value of [%s]\n", *data);
+                CLI_PRINT("Get String value of [%s]\n", *data);
             }
             break;
         }
         case 'b':
         {
-            printf("Bool flag is set\n");
+            CLI_PRINT("Bool flag is set\n");
             break;
         }
         case 'h':
         {
-            printf("help text here!");
+            CLI_PRINT("help text here!");
             break;
         }
         case '?':
         default:
         {
-            printf("%sERROR: invalid option of [%s]%s\n", ANSI_RED,
-                   (*data == NULL ? "NULL" : *data), ANSI_RESET);
+            CLI_ERROR("ERROR: invalid option of [%s]\n", (*data == NULL ? "NULL" : *data));
             return -1;
         }
         }
@@ -467,7 +469,7 @@ int builtin_repeat(int argc, char **args)
 
     if ((argc < 3) || (args == NULL))
     {
-        printf("%s", helptext);
+        CLI_PRINT("%s", helptext);
         return -1;
     }
 
@@ -476,7 +478,7 @@ int builtin_repeat(int argc, char **args)
     for (unsigned int i = 1; i <= count; i++)
     {
 
-        printf("-----\n%sRepeat %d/%d: [%s] %s\n", ANSI_BOLD, i, count, args[2], ANSI_RESET);
+        CLI_INFO("%sRepeat %d/%d: [%s] %s\n", ANSI_BOLD, i, count, args[2], ANSI_RESET);
         int ret = Cli_RunByString(args[2]);
         if (ret != 0)
         {
@@ -496,7 +498,7 @@ int builtin_sleep(int argc, char **args)
 
     if ((argc <= 1) || (args[1] == NULL))
     {
-        printf("%s", helptext);
+        CLI_PRINT("%s", helptext);
         return -1;
     }
 
@@ -515,7 +517,7 @@ int builtin_time(int argc, char **args)
 
     if ((argc <= 1) || (args[1] == NULL))
     {
-        printf("%s", helptext);
+        CLI_PRINT("%s", helptext);
         return -1;
     }
 
@@ -523,7 +525,7 @@ int builtin_time(int argc, char **args)
     int          ret   = Cli_RunByArgs(argc - 1, args + 1);
     unsigned int stop  = cli_gettick();
 
-    printf("time: %d.%03d s\n", (stop - start) / 1000, (stop - start) % 1000);
+    CLI_PRINT("time: %d.%03d s\n", (stop - start) / 1000, (stop - start) % 1000);
 
     return ret;
 }
@@ -545,7 +547,7 @@ int builtin_time(int argc, char **args)
  *              case 'a':
  *                  ...; break;
  *              case '?':
- *                  printf("Unknown option!");
+ *                  CLI_PRINT("Unknown option!");
  *                  ...; break;
  *              }
  *          }while(ret != -1)
@@ -686,7 +688,7 @@ char *cli_getline(void)
 
             // Echo back
             strcat(StringPtr, "\n");
-            printf("\n");
+            CLI_PRINT("\n");
 
             // Return pointer and length
             StringIdx        = 0;
@@ -709,8 +711,14 @@ char *cli_getline(void)
                     StringIdx++;
 
                     // Loop back a char or line
-                    (StringPtr[StringIdx] == 0) ? printf("%c", c)
-                                                : print_newline(StringPtr, StringIdx);
+                    if (StringPtr[StringIdx] == 0)
+                    {
+                        CLI_PRINT("%c", c)
+                    }
+                    else
+                    {
+                        print_newline(StringPtr, StringIdx);
+                    }
                 }
             }
             break;
@@ -798,6 +806,15 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
     return NULL;
 }
 
+void CLI_PRINTF(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    vfprintf(stdout, format, args);
+    va_end(args);
+}
+
 /*!@brief   Register a command to CLI.
  * @example Cli_Register("help","show help text",&builtin_help);
  *
@@ -875,13 +892,13 @@ int Cli_RunByArgs(int argc, char **args)
             if (strcmp(CliCommandList[i].Name, args[0]) == 0)
             {
                 int ret = CliCommandList[i].Func(argc, args);
-                printf("%s\n", ret ? "FAIL" : "OK");
+                CLI_PRINT("%s\n", ret ? "FAIL" : "OK");
                 return ret;
             }
         }
     }
 
-    printf("%sERROR: Unknown command of [%s], try [help].%s\n", ANSI_RED, args[0], ANSI_RESET);
+    CLI_ERROR("ERROR: Unknown command of [%s], try [help].\n", args[0]);
     return CLI_FAIL;
 }
 
@@ -977,7 +994,7 @@ int Cli_Run(void)
             Cli_RunByString(str);
         }
         memset(str, 0, len + 1);
-        printf("%s", CLI_PROMPT_CHAR);
+        CLI_PRINT("%s", CLI_PROMPT_CHAR);
         fflush(stdout);
     }
 
@@ -989,7 +1006,10 @@ void Cli_Task(void const *arguments)
     // Initialize
     cli_sleep(1);
     Cli_Init();
-    printf("[%8ld]Init Finish:\t%s\t%s:%d\n", cli_gettick(), __FUNCTION__, __FILE__, __LINE__);
+    CLI_PRINTF("This is a test %s [%d]\n", __FUNCTION__, __LINE__);
+    CLI_INFO("[%d]%s: Initialize Finish\n", cli_gettick(), __FUNCTION__);
+    // CLI_PRINT("[%8ld]Init Finish:\t%s\t%s:%d\n", cli_gettick(), __FUNCTION__, __FILE__,
+    // __LINE__);
     cli_sleep(1000); // Wait 1s to start CLI
 
     /* Infinite loop */

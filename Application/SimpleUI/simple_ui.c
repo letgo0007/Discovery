@@ -1,4 +1,5 @@
 #include "FreeRTOS.h"
+#include "cli.h"
 #include "cmsis_os.h"
 #include "main.h"
 #include "stdio.h"
@@ -8,10 +9,10 @@
 void SimpleUI_Task(void const *arguments)
 {
     osDelay(200);
-    printf("[%8ld]Init Start:\t%s\t%s:%d\n", HAL_GetTick(), __FUNCTION__, __FILE__, __LINE__);
+    CLI_INFO("[%ld]%s: Initialize Start\n", HAL_GetTick(), __FUNCTION__);
     BSP_LCD_GLASS_Init();
     // osDelay(100);
-    printf("[%8ld]Init Finish:\t%s\t%s:%d\n", HAL_GetTick(), __FUNCTION__, __FILE__, __LINE__);
+    CLI_INFO("[%ld]%s: Initialize Success\n", HAL_GetTick(), __FUNCTION__);
 
     for (;;)
     {
