@@ -73,21 +73,23 @@
 #define CLI_ERROR(msg, args...)                                                                    \
     if (CLI_DEBUG_LEVEL >= 1)                                                                      \
     {                                                                                              \
-        fprintf(stderr, "\e[31m<%s:%d> " msg "\e[0m", __FILE__, __LINE__, ##args);                 \
+        fprintf(stderr, "\e[31m%s <%s:%d> " msg "\e[0m", Cli_TimeStampStr(), __FILE__, __LINE__,   \
+                ##args);                                                                           \
     }
 
 // Warning Message output, with Yellow color.
 #define CLI_WARNING(msg, args...)                                                                  \
     if (CLI_DEBUG_LEVEL >= 2)                                                                      \
     {                                                                                              \
-        fprintf(stdout, "\e[33m<%s:%d> " msg "\e[0m", __FILE__, __LINE__, ##args);                 \
+        fprintf(stdout, "\e[33m%s <%s:%d> " msg "\e[0m", Cli_TimeStampStr(), __FILE__, __LINE__,   \
+                ##args);                                                                           \
     }
 
 // Warning Message output, with Green color.
 #define CLI_INFO(msg, args...)                                                                     \
     if (CLI_DEBUG_LEVEL >= 3)                                                                      \
     {                                                                                              \
-        fprintf(stdout, "\e[35m" msg "\e[0m", ##args);                                             \
+        fprintf(stdout, "\e[35m%s " msg "\e[0m", Cli_TimeStampStr(), ##args);                      \
     }
 
 /*!@typedef CliCommand_TypeDef
@@ -117,12 +119,13 @@ extern int CLI_DEBUG_LEVEL; /*!< -1: Turn off all print                */
                             /*!< 2: PRINT + ERROR + WARNING            */
                             /*!< 3: PRINT + ERROR + WARNING + INFO     */
 /*! Functions ---------------------------------------------------------------*/
-int  Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));
-int  Cli_Unregister(const char *name);
-int  Cli_RunByArgs(int argcount, char **argbuf);
-int  Cli_RunByString(char *cmd);
-int  Cli_Init(void);
-int  Cli_Run(void);
-void Cli_Task(void const *arguments);
+char *Cli_TimeStampStr(void);
+int   Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));
+int   Cli_Unregister(const char *name);
+int   Cli_RunByArgs(int argcount, char **argbuf);
+int   Cli_RunByString(char *cmd);
+int   Cli_Init(void);
+int   Cli_Run(void);
+void  Cli_Task(void const *arguments);
 
 #endif /* CLI_H_ */

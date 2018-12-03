@@ -815,6 +815,18 @@ void CLI_PRINTF(const char *format, ...)
     va_end(args);
 }
 
+char *Cli_TimeStampStr(void)
+{
+
+    static char timestamp[16] = {0};
+
+    uint32_t tick = cli_gettick();
+
+    sprintf(timestamp, "[%03ld.%03ld]", tick / 1000, tick % 1000);
+
+    return timestamp;
+}
+
 /*!@brief   Register a command to CLI.
  * @example Cli_Register("help","show help text",&builtin_help);
  *
@@ -1004,10 +1016,10 @@ int Cli_Run(void)
 void Cli_Task(void const *arguments)
 {
     /* Initialize */
-    cli_sleep(10);      //Wait 10ms for Hardware to settle
+    cli_sleep(10); // Wait 10ms for Hardware to settle
     Cli_Init();
-    CLI_INFO("[%d]%s: Initialize Finish\n", cli_gettick(), __FUNCTION__);
-    cli_sleep(1000);    // Wait 1s to start CLI
+    CLI_INFO("%s: Initialize Finish\n", __FUNCTION__);
+    cli_sleep(1000); // Wait 1s to start CLI
 
     /* Infinite loop */
     for (;;)
