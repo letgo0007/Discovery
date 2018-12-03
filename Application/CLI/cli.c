@@ -1003,14 +1003,11 @@ int Cli_Run(void)
 
 void Cli_Task(void const *arguments)
 {
-    // Initialize
-    cli_sleep(1);
+    /* Initialize */
+    cli_sleep(10);      //Wait 10ms for Hardware to settle
     Cli_Init();
-    CLI_PRINTF("This is a test %s [%d]\n", __FUNCTION__, __LINE__);
     CLI_INFO("[%d]%s: Initialize Finish\n", cli_gettick(), __FUNCTION__);
-    // CLI_PRINT("[%8ld]Init Finish:\t%s\t%s:%d\n", cli_gettick(), __FUNCTION__, __FILE__,
-    // __LINE__);
-    cli_sleep(1000); // Wait 1s to start CLI
+    cli_sleep(1000);    // Wait 1s to start CLI
 
     /* Infinite loop */
     for (;;)

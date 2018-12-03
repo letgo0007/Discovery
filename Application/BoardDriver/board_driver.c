@@ -10,7 +10,8 @@ void BoardDriver_Task(void const *arguments)
     // Wait 50ms for external device power stable.
     osDelay(50);
     CLI_INFO("[%ld]%s: Initialize Start\n", HAL_GetTick(), __FUNCTION__);
-    Bsp_Nvram_init();
+    Bsp_Nvram_Init();
+
     CLI_INFO("[%ld]%s: Initialize Finish\n", HAL_GetTick(), __FUNCTION__);
 
     for (;;)

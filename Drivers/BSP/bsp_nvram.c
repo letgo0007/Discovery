@@ -13,9 +13,7 @@
 #include "bsp_nvram.h"
 #include "stdio.h"
 
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
 #include "eeprom_emul.h"
-#endif
 
 // General Print
 #define NVRAM_PRINT(msg, args...)                                                                  \
@@ -46,7 +44,7 @@
 /*!@var Nvram_VirtualTab
  * Virtual address and real address look up table.
  */
-const uint16_t Nvram_VirtualTab[] = {
+const uint16_t EEP_EMUL_VirtualTab[] = {
     0x100, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
     0x10,  0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
     0x20,  0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
@@ -65,18 +63,15 @@ const uint16_t Nvram_VirtualTab[] = {
     0xF0,  0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,
 };
 
-int Bsp_Nvram_init()
+Nvram_DrvTypeDef Nvram_Drv = {0};
+
+NVRAM_STATUS EEP_EMUL_Init()
 {
-    // Information print
-    // Bsp_Nvram_info();
-
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
-
     // Unlock Flash for EEPROM_Emul to initialize
     HAL_FLASH_Unlock();
     EE_Status status = 0;
 
-    status = EE_Init((uint16_t *)Nvram_VirtualTab, EE_CONDITIONAL_ERASE);
+    status = EE_Init((uint16_t *)EEP_EMUL_VirtualTab, EE_CONDITIONAL_ERASE);
 
     if (EE_ERROR_NOACTIVE_NORECEIVE_NOVALID_PAGE == status)
     {
@@ -99,42 +94,26 @@ int Bsp_Nvram_init()
 
     // Lock Flash after initialize finish.
     HAL_FLASH_Lock();
-#endif
+
     return 0;
 }
 
-int Bsp_Nvram_deinit()
+NVRAM_STATUS EEP_EMUL_DeInit()
 {
     return 0;
 }
 
-void Bsp_Nvram_info()
+NVRAM_STATUS EEP_EMUL_Erase()
 {
-    NVRAM_PRINT("NVRAM_MODLE    = %s\n", NVRAM_MODEL);
-    NVRAM_PRINT("NVRAM_DATA_BIT = %d\n", NVRAM_DATA_BIT);
-    NVRAM_PRINT("NVRAM_DATA_SIZE= %d\n", NVRAM_DATA_SIZE);
-
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
-    NVRAM_PRINT("EEPROM_Emul Flash start address = 0x%lX\n", (uint32_t)START_PAGE_ADDRESS);
-    NVRAM_PRINT("EEPROM_Emul Flash reserved size = 0x%lX\n",
-                (uint32_t)PAGES_NUMBER * FLASH_PAGE_SIZE);
-#endif
-}
-
-int Bsp_Nvram_erase()
-{
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
     EE_Status ret = 0;
     HAL_FLASH_Unlock();
     ret = EE_Format(EE_FORCED_ERASE);
     HAL_FLASH_Lock();
     return ret;
-#endif
 }
 
-int Bsp_Nvram_write(uint16_t addr, uint32_t value)
+NVRAM_STATUS EEP_EMUL_Write(uint32_t addr, uint32_t value)
 {
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
     EE_Status ret = 0;
 
     HAL_FLASH_Unlock();
@@ -148,12 +127,55 @@ int Bsp_Nvram_write(uint16_t addr, uint32_t value)
 
     HAL_FLASH_Lock();
     return ret;
-#endif
 }
 
-int Bsp_Nvram_read(uint16_t addr, uint32_t *value)
+NVRAM_STATUS EEP_EMUL_Read(uint32_t addr, uint32_t *value)
 {
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
     return EE_ReadVariable32bits(addr, value);
-#endif
+}
+
+NVRAM_STATUS EEP_EMUL_GetInfo(Nvram_InfoTypeDef *info)
+{
+    info->Interface  = "EMULATION";
+    info->DevName    = "STM32L4_Flash_EMUL_EEPROM";
+    info->DevChannel = 0;
+    info->DevAddr    = 0;
+    info->DataBit    = 32;
+    info->DataVolume = NB_OF_VARIABLES;
+
+    return NVRAM_OK;
+}
+
+NVRAM_STATUS Bsp_Nvram_Init()
+{
+    Nvram_Drv.Init    = EEP_EMUL_Init;
+    Nvram_Drv.DeInit  = EEP_EMUL_DeInit;
+    Nvram_Drv.Erase   = EEP_EMUL_Erase;
+    Nvram_Drv.Write   = EEP_EMUL_Write;
+    Nvram_Drv.Read    = EEP_EMUL_Read;
+    Nvram_Drv.GetInfo = EEP_EMUL_GetInfo;
+
+    if (Nvram_Drv.Init != NULL)
+    {
+        return Nvram_Drv.Init();
+    }
+
+    return NVRAM_OK;
+}
+
+NVRAM_STATUS Bsp_Nvram_DeInit()
+{
+    if (Nvram_Drv.DeInit != NULL)
+    {
+        Nvram_Drv.DeInit();
+    }
+
+    Nvram_Drv.Init    = NULL;
+    Nvram_Drv.DeInit  = NULL;
+    Nvram_Drv.Erase   = NULL;
+    Nvram_Drv.Write   = NULL;
+    Nvram_Drv.Read    = NULL;
+    Nvram_Drv.GetInfo = NULL;
+
+    return NVRAM_OK;
 }

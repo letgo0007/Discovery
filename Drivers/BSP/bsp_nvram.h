@@ -11,60 +11,41 @@
 #include "eeprom_emul.h"
 #include "stdint.h"
 
-#define NVRAM_TYPE_INTERNAL_FLASH 0 //!>Use Internal flash emulate EEPROM
-#define NVRAM_TYPE_I2C_EEPROM 1     //!>User External EEPROM
-
-#define NVRAM_TYPE NVRAM_TYPE_INTERNAL_FLASH
-
-/*!@defgroup Internal Flash EMUL EEPROM parameters
- *
- */
-#if NVRAM_TYPE == NVRAM_TYPE_INTERNAL_FLASH
-#define NVRAM_MODEL "STM32L4 Flash EMUL EEPROM"
-#define NVRAM_DATA_BIT 32               //!>NVRAM data bit, default is 32bit
-#define NVRAM_DATA_BYTE 4               //!>NVRAM data bit, default is 32bit = 4byte
-#define NVRAM_DATA_SIZE NB_OF_VARIABLES //!>NVRAM data size
-#endif
-
-/*!@defgroup External EEPROM parameters
- *
- */
-#if NVRAM_TYPE == NVRAM_TYPE_I2C_EEPROM
-#define NVRAM_MODEL "25W16"
-#define NVRAM_DATA_BIT 8        //!>NVRAM data length in bit
-#define NVRAM_DATA_BYTE 1       //!>NVRAM data length in byte
-#define NVRAM_DATA_SIZE 1024    //!>NVRAM size
-#define NVRAM_I2C_HANDLE hi2c3  //!>I2C channel
-#define NVRAM_I2C_SLV_ADDR 0x50 //!>I2C slave address
-#endif
+typedef enum {
+    NVRAM_OK        = 0,
+    NVRAM_FAIL      = -1,
+    NVRAM_ERR_PARAM = 1,
+    NVRAM_ERR_IF    = 2,
+} NVRAM_STATUS;
 
 typedef struct {
-    const char *name;
-    uint8_t     DataBit;
-    uint8_t     DataSize;
-} Nvram_Info;
+    char *   Interface;  //!> I2C / SPI / EMULATION
+    char *   DevName;    //!> Device name string
+    uint8_t  DevChannel; //!> Device I2C/SPI bus channel
+    uint8_t  DevAddr;    //!> Device I2C/SPI address
+    uint8_t  DataBit;    //!> Device Data bit, 8/16/32
+    uint32_t DataVolume; //!> Maximum data volume in the device.
+} Nvram_InfoTypeDef;
 
 typedef struct {
     /*! Basic Function */
-    void (*Init)(void);
-    void (*DeInit)(void);
-    void (*Erase)(void);
+    NVRAM_STATUS (*Init)(void);
+    NVRAM_STATUS (*DeInit)(void);
+    NVRAM_STATUS (*Erase)(void);
 
     /*! Register R/W Function */
-    void (*Write)(uint32_t addr, uint32_t value);
-    uint8_t (*Read)(uint32_t addr);
-    void (*WriteEx)(uint8_t reg, uint8_t *value, uint16_t len);
-    void (*ReadEx)(uint8_t reg, uint8_t *value, uint16_t len);
+    NVRAM_STATUS (*Write)(uint32_t addr, uint32_t value);
+    NVRAM_STATUS (*Read)(uint32_t addr, uint32_t *value);
+    NVRAM_STATUS (*WriteEx)(uint8_t reg, uint8_t *value, uint16_t len);
+    NVRAM_STATUS (*ReadEx)(uint8_t reg, uint8_t *value, uint16_t len);
 
     /*! Get Value*/
-    void (*GetInfo)(Nvram_Info *info);
+    NVRAM_STATUS (*GetInfo)(Nvram_InfoTypeDef *info);
 } Nvram_DrvTypeDef;
 
-int  Bsp_Nvram_init();
-int  Bsp_Nvram_deinit();
-int  Bsp_Nvram_erase();
-int  Bsp_Nvram_write(uint16_t addr, uint32_t value);
-int  Bsp_Nvram_read(uint16_t addr, uint32_t *value);
-void Bsp_Nvram_info();
+Nvram_DrvTypeDef Nvram_Drv;
+
+NVRAM_STATUS Bsp_Nvram_Init();
+NVRAM_STATUS Bsp_Nvram_DeInit();
 
 #endif /* INC_BSP_BSP_NVRAM_H_ */
