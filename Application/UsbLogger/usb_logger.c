@@ -8,6 +8,7 @@
 #include "usbd_cdc_if.h"
 
 extern osMessageQId UsbTxQueue_Handle;
+extern uint8_t UserRxBufferFS[];
 
 void UsbLogger_Task(void const *arguments)
 {
@@ -15,23 +16,31 @@ void UsbLogger_Task(void const *arguments)
     osDelay(100);
     CLI_INFO("%s: Initialize Start\n", __FUNCTION__);
     MX_USB_DEVICE_Init();
+
     osDelay(10);
     CLI_INFO("%s: Initialize Finish\n", __FUNCTION__);
 
     /* Infinite loop */
     for (;;)
     {
-        char *   text   = "Hello World\n";
-        uint8_t *ptr[1] = {NULL};
+        char *text = "Hello World\n";
 
         osMessagePut(UsbTxQueue_Handle, text, 100);
         osEvent event = osMessageGet(UsbTxQueue_Handle, 100);
 
         if (event.value.p != NULL)
         {
-            CDC_Transmit_FS(event.value.p, 13);
+            //CDC_Transmit_FS(event.value.p, 13);
         }
 
-        osDelay(1000);
+        int len = 0;
+
+        if(strlen(UserRxBufferFS) != 0)
+        {
+            //printf("%s\n",UserRxBufferFS);
+        }
+
+
+        osDelay(10);
     }
 }
