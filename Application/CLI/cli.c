@@ -1020,6 +1020,7 @@ void Cli_Task(void const *arguments)
     Cli_Init();
     CLI_INFO("%s: Initialize Finish\n", __FUNCTION__);
     cli_sleep(1000); // Wait 1s to start CLI
+    CLI_PRINT(CLI_PROMPT_CHAR);
 
     /* Infinite loop */
     for (;;)
