@@ -37,9 +37,11 @@ typedef struct
 } STDIN_RingBufTypeDef;
 
 /*! Variables ---------------------------------------------------------------*/
-UART_HandleTypeDef *STDIN_huart = NULL;          //!< STDIN UART handle
-UART_HandleTypeDef *STDOUT_huart = NULL;         //!< STDOUT UART handle
-UART_HandleTypeDef *STDERR_huart = NULL;         //!< STDERR UART handle
+extern UART_HandleTypeDef huart2;
+
+UART_HandleTypeDef *STDIN_huart = &huart2;          //!< STDIN UART handle
+UART_HandleTypeDef *STDOUT_huart = &huart2;         //!< STDOUT UART handle
+UART_HandleTypeDef *STDERR_huart = &huart2;         //!< STDERR UART handle
 
 uint8_t *STDOUT_MsgPtr[STDOUT_TX_QUEUE_SIZE] = { 0 };
 uint16_t STDOUT_MsgLen[STDOUT_TX_QUEUE_SIZE] = { 0 };
@@ -48,8 +50,6 @@ uint16_t STDOUT_QueueTail = 0;
 
 STDIN_RingBufTypeDef STDIN_Uart2Buf = { 0 };
 STDIN_RingBufTypeDef STDIN_UsbBuf = { 0 };
-
-extern UART_HandleTypeDef huart2;
 
 /*! Functions ---------------------------------------------------------------*/
 
@@ -349,7 +349,7 @@ int cli_port_init()
     setvbuf(stderr, (char *) NULL, _IONBF, 0);
     setvbuf(stdin, (char *) NULL, _IONBF, 0);
 
-    // Trigger UART receivign.
+    // Trigger UART reception.
     HAL_UART_Receive_DMA(STDIN_huart, STDIN_Uart2Buf.aBuf, STDIN_RX_BUF_SIZE);
 
     // Register board command

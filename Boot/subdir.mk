@@ -1,6 +1,9 @@
 C_INCLUDES += \
 -IBoot/Inc
 
+C_INCLUDES += \
+-IBoot/DFU
+
 C_SOURCES += \
 Boot/Src/main.c \
 Boot/Src/gpio.c \
@@ -17,3 +20,7 @@ Boot/Src/stm32l4xx_it.c \
 Boot/Src/stm32l4xx_hal_msp.c \
 Boot/Src/stm32l4xx_hal_timebase_tim.c \
 Boot/Src/system_stm32l4xx.c
+
+C_SOURCES += \
+Boot/DFU/dfu_console.c \
+Boot/DFU/dfu_flash_if.c
