@@ -1,26 +1,25 @@
 /******************************************************************************
- * @file    bsp_dfu.h
- * @brief   Board Support Package for DFU (Device Firmware Upgrade) Function.
+ * @file    dfu_console.h
+ * @brief   Mini Console for DFU (Device Firmware Upgrade) function.
  *
  * @author  Nick Yang
  * @date    2018/08/12
  * @version V0.2 Initial Version, support Intel Hex (ihex) format.
- *               @ref < https://en.wikipedia.org/wiki/Intel_HEX#Color_legend >
+ *          V0.3 Using dfu_print / dfu_getchar instead of STDIO.
+ *
  *****************************************************************************/
 
 #ifndef DFU_CONSOLE_H_
 #define DFU_CONSOLE_H_
 
+/*! Includes ----------------------------------------------------------------*/
 #include "stdint.h"
 
-/*!@brief
- *
- * https://en.wikipedia.org/wiki/Intel_HEX
- *
- */
+/*! Defines -----------------------------------------------------------------*/
 
-/*!@defgroup HEX_DATATYPE Define Group
- *  Defines for Intel Hex file format
+/*!@defgroup    HEX_DATATYPE Define Group
+ *              Defines for Intel Hex file format
+ * @ref         < https://en.wikipedia.org/wiki/Intel_HEX#Color_legend >
  */
 #define HEX_DATATYPE_DATA               0x00
 #define HEX_DATATYPE_END                0x01
@@ -28,21 +27,15 @@
 #define HEX_DATATYPE_START_SEG_ADDR     0x03
 #define HEX_DATATYPE_LINEAR_ADDR        0x04
 #define HEX_DATATYPE_START_ADDR         0x05
-#define HEX_MAX_STRING_LENGTH           64              //!< Maximum ihex file line length
-#define HEX_MAX_DATA_LENGTH             16              //!< Maximum ihex data length in a single line
+#define HEX_MAX_STRING_LENGTH           64      //!< Maximum ihex file line length
+#define HEX_MAX_DATA_LENGTH             16      //!< Maximum ihex data length in a single line
 
-/*!@defgroup DFU mini terminal define.
- *
- */
-#define DFU_ENTERANCE_CHAR              '\r'            //!< Character to enter DFU mode
-#define DFU_PROMPT_CHAR                 "]"             //!< Character as line prompt in DFU mode
+#define DFU_ENTERANCE_CHAR              '\r'    //!< Character to enter DFU mode
+#define DFU_PROMPT_CHAR                 "]"     //!< Character as line prompt in DFU mode
+#define DFU_BOOT_DELAY                  1000    //!< Delay time for wait keyboard input to enter DFU
+#define DFU_INPUT_BUF_SIZE              2048    //!< IO input buffer size
+#define DFU_OUTPUT_BUF_SIZE             2048    //!< IO output buffer size
 
-/*!@defgroup DFU Flash usage define
- *
- */
-#define DFU_MAX_PAGE                    128             //!< Maximum Page used in the DFU Mode.
-//!< This will protect NVRAM area if used.
-#define DFU_FORCE_ERASE                 0               //!< [0]: Only erase flash only when target page is not empty.
 //!< [1]: Force erase flash page.
 
 /*!@def DFU_WORK_BANK       Working Flash Bank, could select FLASH_BANK_1 FLASH_BANK_2 or both.
@@ -55,7 +48,6 @@
  *      FLASH_BANK_1 | FLASH_BANK_2 :   Work on either bank.
  *                     @note automatic download content to another bank.
  */
-
 #define DFU_WORK_BANK                  FLASH_BANK_1//(FLASH_BANK_1 | FLASH_BANK_2)
 
 /*!@struct Line structure of a line in .hex file
@@ -89,7 +81,8 @@ typedef enum
 
 } Dfu_RetTypeDef;
 
-Dfu_RetTypeDef Bsp_Dfu_init();
-Dfu_RetTypeDef Bsp_Dfu_run();
+/*! Functions ---------------------------------------------------------------*/
+Dfu_RetTypeDef Bsp_Dfu_Init();
+Dfu_RetTypeDef Bsp_Dfu_Console();
 
 #endif /* DFU_CONSOLE_H_ */

@@ -1,12 +1,15 @@
 /******************************************************************************
- * @file    bsp_dfu.c
- * @brief   Board Support Package for DFU (Device Firmware Upgrade) Function.
+ * @file    dfu_console.c
+ * @brief   Mini Console for DFU (Device Firmware Upgrade) function.
  *
  * @author  Nick Yang
  * @date    2018/08/12
  * @version V0.2 Initial Version, support Intel Hex (ihex) format.
- *               @ref < https://en.wikipedia.org/wiki/Intel_HEX#Color_legend >
+ *          V0.3 Using dfu_print / dfu_getchar instead of printf / getchar
+ * @ref     < https://en.wikipedia.org/wiki/Intel_HEX#Color_legend >
  *****************************************************************************/
+
+/*! Includes ----------------------------------------------------------------*/
 
 #include "stm32l4xx_hal.h"
 #include "string.h"
@@ -17,32 +20,17 @@
 #include "dfu_console.h"
 #include "dfu_flash_if.h"
 
-#define DFU_INPUT_BUF_SIZE          2048
-#define DFU_OUTPUT_BUF_SIZE         2048
+/*! Defines -----------------------------------------------------------------*/
 
-const char *Dfu_helptext = "\n"
-        "-------------------------------------------------------\n"
-        "!                    Mini DFU Console                 !\n"
-        "-------------------------------------------------------\n"
-        "Supported File Format: Intel Hex \n"
-        "<https://en.wikipedia.org/wiki/Intel_HEX#Color_legend>\n "
-        "-------------------------------------------------------\n"
-        "Download Firmware:\n"
-        "cat ./Build/AntaresMcu.hex >/dev/cu.usbserial-SCOR0012\n"
-        "-------------------------------------------------------\n"
-        "Command List:\n"
-        "quit   : Quit DFU Mode.\n"
-        "status : Get current working status.\n"
-        "go     : Run download program.\n"
-        "reset  : Reset MCU.\n"
-        "help   : Show this help text.\r\n";
-
+/*! Variables ---------------------------------------------------------------*/
 extern UART_HandleTypeDef huart2;
+
 uint8_t *Dfu_InputBuf = NULL;
 uint16_t Dfu_InputIdx = 0;
 uint8_t *Dfu_OutputBuf = NULL;
 uint16_t Dfu_OutputIdx = 0;
 
+/*! Functions ---------------------------------------------------------------*/
 /*!@brief Convert 'A' to 0x0A
  *
  * @param   ascii   : 'A'  ASCII character
@@ -102,12 +90,17 @@ int ascii_to_u8(char *string, uint16_t len, uint8_t *value)
 
 int dfu_flush(void)
 {
+    {
+        return 0;
+    }
+
     static uint16_t last_head = 0;
     static uint16_t last_len = 0;
 
     // Flush output buffer only when UART TX is not busy
-    if ((HAL_UART_STATE_BUSY_TX == HAL_UART_GetState(&huart2))
             || (HAL_UART_STATE_BUSY_TX_RX == HAL_UART_GetState(&huart2)))
+    HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart2);
+    if ((HAL_UART_STATE_BUSY_TX == state) || (HAL_UART_STATE_BUSY_TX_RX == state))
     {
         return 0;
     }
@@ -124,12 +117,12 @@ int dfu_flush(void)
         last_len = 0;
     }
 
-    // Check if output buffer is empty
+    // Find something in the buffer is not empty
     int head = last_head;
     int len = 0;
     if (Dfu_OutputBuf[head] != 0)
     {
-        len = strlen(&Dfu_OutputBuf[last_head]);
+        len = strlen((const char*) &Dfu_OutputBuf[last_head]);
     }
 
     // Trigger transfer
@@ -142,6 +135,11 @@ int dfu_flush(void)
 
 int dfu_print(char *fmt, ...)
 {
+    if (Dfu_OutputBuf == NULL)
+    {
+        return 0;
+    }
+
     // Virtual print to buffer
     va_list argptr;
     va_start(argptr, fmt);
@@ -165,10 +163,15 @@ int dfu_print(char *fmt, ...)
 //Get a single char from input buffer
 int dfu_getchar()
 {
+    if (Dfu_InputBuf == NULL)
+    {
+        return 0;
+    }
+
     uint8_t c = Dfu_InputBuf[Dfu_InputIdx];
     if (c == 0)
     {
-        return 0xFF;
+        return '\xff';
     }
     else
     {
@@ -256,43 +259,6 @@ void dfu_io_deinit(void)
     HAL_UART_AbortReceive_IT(&huart2);
 }
 
-uint32_t Dfu_selectBootBank()
-{
-    //!< Get current working bank
-    Dfu_RetTypeDef ret = DFU_OK;
-    uint32_t CurrentBank = Flash_getActiveBank();
-    uint32_t OtherBank = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
-
-    dfu_print("%s: Boot from flash bank [%ld]\n", __FILE__, CurrentBank);
-
-    /*! Boot from work bank or dual work bank is selected */
-    if (((CurrentBank == DFU_WORK_BANK)) || (DFU_WORK_BANK == FLASH_BANK_2 + FLASH_BANK_1))
-    {
-        ;
-    }
-    else /*! Single work bank is selected, and Boot from download bank. */
-    {
-        //Single work bank is selected, copy and jump to the other bank.
-        dfu_print("\e[33m%s: Work bank is [%ld], Try copy bank[%ld]->bank[%ld].\n\e[0m", __FILE__,
-        DFU_WORK_BANK, CurrentBank, OtherBank);
-
-        ret = Flash_copyBank(CurrentBank, OtherBank);
-
-        if (DFU_OK == ret)
-        {
-            dfu_print("\n\e[33mBank Copy Success! Reboot to bank[%ld].\e[0m\n", OtherBank);
-            Flash_setActiveBank(OtherBank);
-        }
-        else
-        {
-            //Flash bank copy fail, retry.
-            ;
-        }
-    }
-
-    return CurrentBank;
-}
-
 /*!@brief Parse a Intel Hex format line, example is:
  *        :020000040800F2
  *
@@ -302,7 +268,7 @@ uint32_t Dfu_selectBootBank()
  * @param   hexline : Pointer to hex line structure.
  * @return  @ref Dfu_RetTypeDef
  */
-Dfu_RetTypeDef Dfu_parseHexLine(char *string, int len, Dfu_HexLineTypeDefine *hexline)
+Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexline)
 {
     if (string[0] == ':')
     {
@@ -374,7 +340,7 @@ Dfu_RetTypeDef Dfu_parseHexLine(char *string, int len, Dfu_HexLineTypeDefine *he
  * @param hexline   : Pointer to a hexline structure.
  * @return
  */
-Dfu_RetTypeDef Dfu_runHexLine(Dfu_HexLineTypeDefine *hexline)
+Dfu_RetTypeDef Hex_ExcuteLine(Dfu_HexLineTypeDefine *hexline)
 {
     uint32_t base_addr = 0;
     uint32_t address = 0;
@@ -405,7 +371,7 @@ Dfu_RetTypeDef Dfu_runHexLine(Dfu_HexLineTypeDefine *hexline)
         break;
     case HEX_DATATYPE_END: //!< End of a Hex File
         //End of operation
-        dfu_print("Hex: End of file\n");
+        dfu_print("\r\n[%03d.%03d]Hex: End of file\n", HAL_GetTick() / 1000, HAL_GetTick() % 1000);
         dfu_print("Hex: LineCount  = %ld\n", hexline->LineCount);
         dfu_print("Hex: ErrorCount = %ld\n", hexline->ErrorCount);
         dfu_print("Hex: ByteCount  = %ld\n", hexline->ByteCount);
@@ -451,6 +417,40 @@ Dfu_RetTypeDef Dfu_runHexLine(Dfu_HexLineTypeDefine *hexline)
     return 0;
 }
 
+uint32_t Dfu_selectBootBank()
+{
+    //!< Get current working bank
+    Dfu_RetTypeDef ret = DFU_OK;
+    uint32_t CurrentBank = Flash_getActiveBank();
+    uint32_t OtherBank = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
+
+    dfu_print("%s: Boot from flash bank [%ld]\n", __FILE__, CurrentBank);
+
+    /*! Boot from work bank or dual work bank is selected */
+    if (((CurrentBank == DFU_WORK_BANK)) || (DFU_WORK_BANK == FLASH_BANK_2 + FLASH_BANK_1))
+    {
+        ;
+    }
+    else /*! Single work bank is selected, and Boot from download bank. */
+    {
+        //Single work bank is selected, copy and jump to the other bank.
+        HAL_Delay(10);
+        dfu_print("\e[33m%s: Work bank is [%ld], Try copy bank[%ld]->bank[%ld].\n\e[0m", __FILE__,
+        DFU_WORK_BANK, CurrentBank, OtherBank);
+
+        ret = Flash_copyBank(CurrentBank, OtherBank);
+
+        if (DFU_OK == ret)
+        {
+            dfu_print("\n\e[33mBank Copy Success! Reboot to bank[%ld].\e[0m\n", OtherBank);
+            Flash_setActiveBank(OtherBank);
+        }
+
+    }
+
+    return CurrentBank;
+}
+
 /*!@brief DFU Initial Work Flow:
  *
  * FLASH_BANK_1 is working bank.
@@ -465,7 +465,8 @@ Dfu_RetTypeDef Dfu_runHexLine(Dfu_HexLineTypeDefine *hexline)
  * [DFU]    -> Parse Hex file -> Write Bank2 -> Set Bank2 active ->  [Reboot]
  *
  */
-Dfu_RetTypeDef Bsp_Dfu_init()
+
+Dfu_RetTypeDef Bsp_Dfu_Init()
 {
     /*! 1. Initialize IO */
     dfu_io_init();
@@ -476,8 +477,8 @@ Dfu_RetTypeDef Bsp_Dfu_init()
     uint32_t DfuBank = FLASH_BANK_2 + FLASH_BANK_1 - BootBank;
 
     /*! 3. Wait Keyboard to enter DFU console. */
-    dfu_print("%s: Press [Enter] to enter DFU console, wait %d ms.\n", __FILE__, 1000);
-    uint32_t end_tick = HAL_GetTick() + 1000;
+    dfu_print("%s: Press [Enter] to enter DFU console, wait %d ms.\n", __FILE__, DFU_BOOT_DELAY);
+    uint32_t end_tick = HAL_GetTick() + DFU_BOOT_DELAY;
     while (HAL_GetTick() < end_tick)
     {
         char c = dfu_getchar();
@@ -490,7 +491,7 @@ Dfu_RetTypeDef Bsp_Dfu_init()
             Flash_eraseBank(DfuBank);
 
             // Run DFU console
-            Bsp_Dfu_run();
+            Bsp_Dfu_Console();
         }
         HAL_Delay(100);
         dfu_print(".");
@@ -501,21 +502,27 @@ Dfu_RetTypeDef Bsp_Dfu_init()
     return DFU_OK;
 }
 
-/*!@brief  DFU Mini Console
+/*!@brief  Start a mini console for DFU function.
+ *         It will check input of UART and write DFU bank flash.
  *
  * @return
  */
-Dfu_RetTypeDef Bsp_Dfu_run()
+Dfu_RetTypeDef Bsp_Dfu_Console()
 {
+    const char *Dfu_helptext = "\n"
+            "\e[1m\e[5m===Mini DFU console===\e[0m\n"
+            "FW Download: Transmit the <.hex> file through UART, e.g.\n"
+            "             \e[4mcat ./Build/discovery.hex >/dev/cu.usbmodem14203\e[0m\n"
+            "quit   | q : Quit DFU mode\n"
+            "status | s : Show DFU status.\n"
+            "help       : Show this help text.\r\n";
+
     static int str_len = 0;
-    static char str_buf[256] = { 0 };
+    static char str_buf[HEX_MAX_STRING_LENGTH] = { 0 };
     static Dfu_HexLineTypeDefine hexline = { 0 };
 
     Dfu_RetTypeDef ret = DFU_OK;
 
-    //Get current boot bank
-    uint32_t CurrentBank = Flash_getActiveBank();
-    uint32_t OtherBank = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
     dfu_print("\r\n]");
 
     while (1)
@@ -530,40 +537,26 @@ Dfu_RetTypeDef Bsp_Dfu_run()
             {
                 dfu_print("\n%s", Dfu_helptext);
             }
-            else if (strcmp(str_buf, "reset") == 0)
-            {
-                dfu_print("\nDFU Process reset.\n");
-                memset(&hexline, 0, sizeof(str_buf));
-                memset(&hexline, 0, sizeof(hexline));
-                Flash_erasePage(OtherBank, 0, DFU_MAX_PAGE);
-                //Flash_eraseBank(OtherBank);
-            }
             else if ((strcmp(str_buf, "q") == 0) || (strcmp(str_buf, "quit") == 0))
             {
                 dfu_print("\nQuit DFU process.\n");
                 return -1;
             }
-            else if (strcmp(str_buf, "status") == 0)
+            else if ((strcmp(str_buf, "s") == 0) || (strcmp(str_buf, "status") == 0))
             {
                 dfu_print("%s\nDFU status:\n", str_buf);
                 dfu_print("HexLineCount  = %ld\n", hexline.LineCount);
                 dfu_print("HexErrorCount = %ld\n", hexline.ErrorCount);
                 dfu_print("HexByteCount  = %ld\n", hexline.ByteCount);
             }
-            else if ((strcmp(str_buf, "g") == 0) || (strcmp(str_buf, "go") == 0))
-            {
-                dfu_print("%s\nJump to DFU bank.\n", str_buf);
-                dfu_flush();
-
-                Flash_setActiveBank(OtherBank);
-            }
             else if (str_buf[0] == ':')
             {
-                //Parse UART string to HEX line format
-                ret = Dfu_parseHexLine(str_buf, str_len, &hexline);
+                //Parse sting using ihex format
+                ret = Hex_ParseLine(str_buf, str_len, &hexline);
                 if (ret == DFU_OK)
                 {
-                    ret = Dfu_runHexLine(&hexline);
+                    //Process HEX line
+                    ret = Hex_ExcuteLine(&hexline);
                     if (ret != DFU_OK)
                     {
                         dfu_print("ERROR: Dfu_runHexLine fail, error code = [%d]\n", ret);
@@ -571,18 +564,17 @@ Dfu_RetTypeDef Bsp_Dfu_run()
                 }
                 else
                 {
-                    //Process HEX line
+
                     dfu_print("ERROR: Dfu_parseHexLine fail, error code = [%d]\n", ret);
                 }
 
                 //Clear buffer after successfully run a command.
                 memset(str_buf, 0, sizeof(str_buf));
                 str_len = 0;
-
             }
             else
             {
-                dfu_print("ERROR: Unknown command, try [help].\n");
+                dfu_print("\nERROR: Unknown command, try [help].\n");
             }
 
             //Clear empty line
