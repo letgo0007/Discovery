@@ -25,7 +25,7 @@ void UsbLogger_Task(void const *arguments)
     {
         char *text = "Hello World\n";
 
-        osMessagePut(UsbTxQueue_Handle, text, 100);
+        osMessagePut(UsbTxQueue_Handle, (uint32_t) text, 100);
         osEvent event = osMessageGet(UsbTxQueue_Handle, 100);
 
         if (event.value.p != NULL)
@@ -33,13 +33,10 @@ void UsbLogger_Task(void const *arguments)
             //CDC_Transmit_FS(event.value.p, 13);
         }
 
-        int len = 0;
-
-        if(strlen(UserRxBufferFS) != 0)
+        if (strlen((const char *) UserRxBufferFS) != 0)
         {
             //printf("%s\n",UserRxBufferFS);
         }
-
 
         osDelay(10);
     }

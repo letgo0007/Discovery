@@ -18,6 +18,7 @@
 #include "cli.h"
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
+#include "usbd_cdc_if.h"
 
 /*! Defines -----------------------------------------------------------------*/
 
@@ -243,7 +244,7 @@ int _write(int file, char *ptr, int len)
     // STDOUT
     if (file >= 1)
     {
-        CDC_Transmit_FS(ptr, len);
+        CDC_Transmit_FS((uint8_t*)ptr, len);
         STDOUT_PushToQueueHead(ptr, len);
         STDOUT_TransmitFromQueueTail(STDOUT_huart);
 

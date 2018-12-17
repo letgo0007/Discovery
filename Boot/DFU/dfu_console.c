@@ -90,6 +90,7 @@ int ascii_to_u8(char *string, uint16_t len, uint8_t *value)
 
 int dfu_flush(void)
 {
+    if (Dfu_OutputBuf == NULL)
     {
         return 0;
     }
@@ -98,7 +99,6 @@ int dfu_flush(void)
     static uint16_t last_len = 0;
 
     // Flush output buffer only when UART TX is not busy
-            || (HAL_UART_STATE_BUSY_TX_RX == HAL_UART_GetState(&huart2)))
     HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart2);
     if ((HAL_UART_STATE_BUSY_TX == state) || (HAL_UART_STATE_BUSY_TX_RX == state))
     {
