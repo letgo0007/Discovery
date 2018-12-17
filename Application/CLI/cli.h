@@ -66,32 +66,36 @@
 
 // General Print
 #define CLI_PRINT(msg, args...)                                                                    \
-    if (CLI_DEBUG_LEVEL >= 0)                                                                      \
+    if (gCliDebugLevel >= 0)                                                                       \
     {                                                                                              \
         fprintf(stdout, msg, ##args);                                                              \
     }
 
 // Error Message output, with RED color.
 #define CLI_ERROR(msg, args...)                                                                    \
-    if (CLI_DEBUG_LEVEL >= 1)                                                                      \
+    if (gCliDebugLevel >= 1)                                                                       \
     {                                                                                              \
-        fprintf(stderr, ANSI_RED "%s <%s:%d> " msg ANSI_RESET, Cli_TimeStampStr(), __FILE__, __LINE__,   \
+        fprintf(stderr, ANSI_RED "%s <%s:%d> " msg ANSI_RESET,                                     \
+                Cli_TimeStampStr(), __FILE__, __LINE__,                                            \
                 ##args);                                                                           \
     }
 
 // Warning Message output, with Yellow color.
 #define CLI_WARNING(msg, args...)                                                                  \
-    if (CLI_DEBUG_LEVEL >= 2)                                                                      \
+    if (gCliDebugLevel >= 2)                                                                       \
     {                                                                                              \
-        fprintf(stdout, ANSI_YELLOW "%s <%s:%d> " msg ANSI_RESET, Cli_TimeStampStr(), __FILE__, __LINE__,   \
+        fprintf(stdout, ANSI_YELLOW "%s <%s:%d> " msg ANSI_RESET,                                  \
+                Cli_TimeStampStr(), __FILE__, __LINE__,                                            \
                 ##args);                                                                           \
     }
 
 // Warning Message output, with Green color.
 #define CLI_INFO(msg, args...)                                                                     \
-    if (CLI_DEBUG_LEVEL >= 3)                                                                      \
+    if (gCliDebugLevel >= 3)                                                                       \
     {                                                                                              \
-        fprintf(stdout, ANSI_MAGENTE"%s " msg ANSI_RESET, Cli_TimeStampStr(), ##args);                      \
+        fprintf(stdout, ANSI_MAGENTE"%s " msg ANSI_RESET,                                          \
+                Cli_TimeStampStr(),                                                                \
+                ##args);                                                                           \
     }
 
 /*!@typedef CliCommand_TypeDef
@@ -106,7 +110,7 @@ typedef struct
 
 /*!@typedef CliOption_TypeDef
  *          Structure for a CLI command options. It's a implement of the
- * "getopt" & "getopt_long" function.
+ *          "getopt" & "getopt_long" function.
  * @example see "builtin_test" function
  */
 typedef struct
@@ -117,11 +121,16 @@ typedef struct
 } CliOption_TypeDef;
 
 /*! Variables ---------------------------------------------------------------*/
-extern int CLI_DEBUG_LEVEL; /*!< -1: Turn off all print                */
-/*!< 0: PRINT only, no debug info.         */
-/*!< 1: PRINT + ERROR                      */
-/*!< 2: PRINT + ERROR + WARNING            */
-/*!< 3: PRINT + ERROR + WARNING + INFO     */
+
+/*!@def gCliDebugLevel
+ *      -1  : Turn off all print
+ *      0   : PRINT only, no debug info.
+ *      1   : PRINT + ERROR
+ *      2   : PRINT + ERROR + WARNING
+ *      3   : PRINT + ERROR + WARNING + INFO
+ */
+extern int gCliDebugLevel;
+
 /*! Functions ---------------------------------------------------------------*/
 char *Cli_TimeStampStr(void);
 int Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));

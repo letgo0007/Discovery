@@ -32,22 +32,22 @@
     } while (0)
 
 const char *Nvram_helptext = "Nvram command usage:\n"
-                             "\t-w --write [addr] [value ...]   Write a value to Nvram\n"
-                             "\t-r --read  [addr] [len]         Read a value from Nvram\n"
-                             "\t-e --erase Erase Nvram content on flash bank.\n"
-                             "\t-d --dump  Dump Nvram content.\n"
-                             "\t-i --info  [debug] Show Nvram info\n"
-                             "\t-h --help  Show this help text.\n";
+        "\t-w --write [addr] [value ...]   Write a value to Nvram\n"
+        "\t-r --read  [addr] [len]         Read a value from Nvram\n"
+        "\t-e --erase Erase Nvram content on flash bank.\n"
+        "\t-d --dump  Dump Nvram content.\n"
+        "\t-i --info  [debug] Show Nvram info\n"
+        "\t-h --help  Show this help text.\n";
 
 int cli_nvram(int argc, char *argv[])
 {
     argc--;
     argv++;
-    char *tail[1] = {0};
+    char *tail[1] = { 0 };
 
     // Check fatal driver interface
-    if ((Nvram_Drv.Init == NULL) || (Nvram_Drv.Write == NULL) || (Nvram_Drv.Read == NULL) ||
-        (Nvram_Drv.GetInfo == NULL) || (Nvram_Drv.Erase == NULL))
+    if ((Nvram_Drv.Init == NULL) || (Nvram_Drv.Write == NULL) || (Nvram_Drv.Read == NULL)
+            || (Nvram_Drv.GetInfo == NULL) || (Nvram_Drv.Erase == NULL))
     {
         NVRAM_ERROR("ERROR: NVRAM driver not correctly registered.\n");
         return -1;
@@ -107,9 +107,9 @@ int cli_nvram(int argc, char *argv[])
     }
     else if ((strcmp(argv[0], "-d") == 0) || (strcmp(argv[0], "--dump") == 0))
     {
-        Nvram_InfoTypeDef info   = {0};
-        NVRAM_STATUS      status = 0;
-        uint32_t          val    = 0;
+        Nvram_InfoTypeDef info = { 0 };
+        NVRAM_STATUS status = 0;
+        uint32_t val = 0;
 
         Nvram_Drv.GetInfo(&info);
         CLI_INFO("NVRAM Information:\n");
@@ -157,7 +157,7 @@ int cli_nvram(int argc, char *argv[])
     }
     else if ((strcmp(argv[0], "-i") == 0) || (strcmp(argv[0], "--info") == 0))
     {
-        Nvram_InfoTypeDef info = {0};
+        Nvram_InfoTypeDef info = { 0 };
         Nvram_Drv.GetInfo(&info);
         CLI_PRINT("NVRAM Information:\n");
         CLI_PRINT("Interface   = %s\n", info.Interface);
@@ -174,11 +174,11 @@ int cli_nvram(int argc, char *argv[])
 
     return 0;
 
-param_error:
+    param_error:
     CLI_PRINT("\e[31mERROR: can't convert [%s] to integer value.\e[0m\n", *tail);
     return -1;
 
-syntax_error:
+    syntax_error:
     CLI_PRINT("\e[31mERROR: Invalid command syntax, try use --help.\e[0m\n");
     return -1;
 }

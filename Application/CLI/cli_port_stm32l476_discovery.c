@@ -244,7 +244,7 @@ int _write(int file, char *ptr, int len)
     // STDOUT
     if (file >= 1)
     {
-        CDC_Transmit_FS((uint8_t*)ptr, len);
+        CDC_Transmit_FS((uint8_t*) ptr, len);
         STDOUT_PushToQueueHead(ptr, len);
         STDOUT_TransmitFromQueueTail(STDOUT_huart);
 

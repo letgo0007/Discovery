@@ -88,6 +88,11 @@ int ascii_to_u8(char *string, uint16_t len, uint8_t *value)
     return 0;
 }
 
+/*!@brief   Flush content in DFU output buffer.
+ *          Works like fflush() except it's non-blocking and will check UART availability.
+ *
+ * @return
+ */
 int dfu_flush(void)
 {
     if (Dfu_OutputBuf == NULL)
@@ -133,6 +138,13 @@ int dfu_flush(void)
     return len;
 }
 
+/*!@brief   Print for DFU function.
+ *          Works like printf() with a output buffer enabled.
+ *          Print string will first be pushed to the ring buffer of Dfu_OutputBuf and dfu_flush() will trigger the transfer.
+ *
+ * @param   fmt     printf() style format.
+ * @return
+ */
 int dfu_print(char *fmt, ...)
 {
     if (Dfu_OutputBuf == NULL)
@@ -160,18 +172,23 @@ int dfu_print(char *fmt, ...)
     return (cnt);
 }
 
-//Get a single char from input buffer
+/*!@brief   Get a char from DFU input port (typically UART)
+ *          The UART RX data will be buffered in Dfu_InputBuf by UART hardware & DMA and wait for this function to read.
+ *          works like getchar() of stdio.
+ * @return  EOF(-1)     : No data is received.
+ *          0x00~0xFE   : received data.
+ */
 int dfu_getchar()
 {
     if (Dfu_InputBuf == NULL)
     {
-        return 0;
+        return EOF;
     }
 
     uint8_t c = Dfu_InputBuf[Dfu_InputIdx];
     if (c == 0)
     {
-        return '\xff';
+        return EOF;
     }
     else
     {
@@ -181,10 +198,14 @@ int dfu_getchar()
     }
 }
 
-//Get a line (end with '\r' or '\n') from input buffer
+/*!@brief   Get a line from DFU input port (typically UART)
+ *
+ * @param   line    Pointer to where the line is saved.
+ * @return  Number of bytes that received. 0x00 means there is no line ("\r")
+ */
 int dfu_getline(char *line)
 {
-    static char linebuf[256] = { 0 };
+    static char linebuf[HEX_MAX_STRING_LENGTH] = { 0 };
     static int idx = 0;
     int c = 0;
 
@@ -235,7 +256,7 @@ int dfu_getline(char *line)
             break;
         }
         }
-    } while (c != '\xff');
+    } while ((c != '\xff') && (c != EOF));
 
     return 0;
 }

@@ -57,4 +57,4 @@ dkms.conf
 /build
 /Build
 .settings/language.settings.xml
-.cproject
+*.prefs
