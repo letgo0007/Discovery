@@ -79,14 +79,15 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-QueueHandle_t xQueueUsbTx = NULL;
+osMessageQDef(_thread0_MsgQ, 100, char*);
+osMessageQId UsbTxQueue_Handle = NULL;
 
 /* USER CODE END Variables */
-osThreadId defaultTaskHandle  = NULL;
+osThreadId defaultTaskHandle = NULL;
 osThreadId BoardDriver_Handle = NULL;
-osThreadId Cli_Handle         = NULL;
-osThreadId SimpleUI_Handle    = NULL;
-osThreadId UsbLogger_Handle   = NULL;
+osThreadId Cli_Handle = NULL;
+osThreadId SimpleUI_Handle = NULL;
+osThreadId UsbLogger_Handle = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -145,7 +146,8 @@ void MX_FREERTOS_Init(void)
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
-    xQueueUsbTx = xQueueCreate(256, sizeof(char *));
+
+    UsbTxQueue_Handle = osMessageCreate(osMessageQ(_thread0_MsgQ), 0);
     /* USER CODE END RTOS_QUEUES */
 }
 

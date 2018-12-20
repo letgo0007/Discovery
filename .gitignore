@@ -57,3 +57,4 @@ dkms.conf
 /build
 /Build
 .settings/language.settings.xml
+*.prefs
