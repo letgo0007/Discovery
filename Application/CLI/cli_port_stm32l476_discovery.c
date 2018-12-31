@@ -30,7 +30,7 @@
 #define STDIO_MALLOC(x)         malloc(x)
 #define STDIO_FREE(x)           free(x)
 
-typedef struct
+typedef struct STDIN_RingBufTypeDef
 {
     uint8_t aBuf[STDIN_RX_BUF_SIZE];
     uint16_t PutIndex;
@@ -176,6 +176,81 @@ void STDOUT_TransmitCpltCallBack(UART_HandleTypeDef *huart)
     STDOUT_TransmitFromQueueTail(huart);
 }
 
+void cli_sleep(int ms)
+{
+    osDelay(ms);
+}
+
+unsigned int cli_gettick(void)
+{
+    return HAL_GetTick();
+}
+
+void *cli_malloc(size_t size)
+{
+    if (size <= 0)
+    {
+        return NULL;
+    }
+    void *ptr = NULL;
+    while (ptr == NULL)
+    {
+        ptr = pvPortMalloc(size);
+        //ptr = malloc(size);
+    }
+    memset(ptr, 0, size);
+    return ptr;
+}
+
+void cli_free(void *ptr)
+{
+    vPortFree(ptr);
+    //free(ptr);
+}
+
+int cli_port_init()
+{
+    // Set UART handle pointer
+    STDIN_huart = &huart2; //!< STDIN UART handle
+    STDOUT_huart = &huart2; //!< STDOUT UART handle
+    STDERR_huart = &huart2; //!< STDERR UART handle
+
+    // Clear buffer
+    memset(STDOUT_MsgPtr, 0, STDOUT_TX_QUEUE_SIZE * sizeof(uint8_t *));
+    memset(STDOUT_MsgLen, 0, STDOUT_TX_QUEUE_SIZE * sizeof(uint16_t));
+    STDOUT_QueueHead = 0;
+    STDOUT_QueueTail = 0;
+
+    // Set STDIO type and buffer size
+    setvbuf(stdout, (char *) NULL, _IOLBF, 256);
+    setvbuf(stderr, (char *) NULL, _IONBF, 0);
+    setvbuf(stdin, (char *) NULL, _IONBF, 0);
+
+    // Trigger UART reception.
+    HAL_UART_Receive_DMA(STDIN_huart, STDIN_Uart2Buf.aBuf, STDIN_RX_BUF_SIZE);
+
+    // Register board command
+    CLI_Register("info", "MCU Information", &cli_info);
+    CLI_Register("reset", "MCU Reset", &cli_reset);
+    CLI_Register("mem", "Memory write/read", &cli_mem);
+    CLI_Register("nvram", "Non-Volatile RAM operation", &cli_nvram);
+    CLI_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
+    CLI_Register("os", "RTOS operation", &cli_os);
+    CLI_Register("rtc", "Real Time Clock operation", &cli_rtc);
+
+    return 0;
+}
+
+void cli_port_deinit()
+{
+    ;
+}
+
+int cli_port_getc(void)
+{
+    return getchar();
+}
+
 /*!@brief   Override system call of _read, route STDIN to UART RX.
  *          get byte from STDIN stream.
  *
@@ -287,91 +362,4 @@ void HAL_UsbCdc_ReceiveCallBack(uint8_t* Buf, uint32_t *Len)
     {
         STDIN_PutChar(&STDIN_UsbBuf, Buf[i]);
     }
-}
-
-void cli_sleep(int ms)
-{
-    osDelay(ms);
-}
-
-unsigned int cli_gettick(void)
-{
-    return HAL_GetTick();
-}
-
-void *cli_malloc(size_t size)
-{
-    if (size <= 0)
-    {
-        return NULL;
-    }
-    void *ptr = NULL;
-    while (ptr == NULL)
-    {
-        ptr = pvPortMalloc(size);
-        // ptr = malloc(size);
-    }
-    memset(ptr, 0, size);
-    return ptr;
-}
-
-void cli_free(void *ptr)
-{
-    vPortFree(ptr);
-    // free(ptr);
-}
-
-/*! External CLI command list
- */
-extern int cli_reset(int argc, char **argv);
-extern int cli_info(int argc, char **argv);
-extern int cli_mem(int argc, char **argv);
-extern int cli_qspi(int argc, char **argv);
-extern int cli_os(int argc, char **argv);
-extern int cli_top(int argc, char **argv);
-extern int cli_rtc(int argc, char **argv);
-extern int cli_nvram(int argc, char **argv);
-
-int cli_port_init()
-{
-    // Set UART handle pointer
-    STDIN_huart = &huart2; //!< STDIN UART handle
-    STDOUT_huart = &huart2; //!< STDOUT UART handle
-    STDERR_huart = &huart2; //!< STDERR UART handle
-
-    // Clear buffer
-    memset(STDOUT_MsgPtr, 0, STDOUT_TX_QUEUE_SIZE * sizeof(uint8_t *));
-    memset(STDOUT_MsgLen, 0, STDOUT_TX_QUEUE_SIZE * sizeof(uint16_t));
-    STDOUT_QueueHead = 0;
-    STDOUT_QueueTail = 0;
-
-    // Set STDIO type and buffer size
-    setvbuf(stdout, (char *) NULL, _IOLBF, 256);
-    setvbuf(stderr, (char *) NULL, _IONBF, 0);
-    setvbuf(stdin, (char *) NULL, _IONBF, 0);
-
-    // Trigger UART reception.
-    HAL_UART_Receive_DMA(STDIN_huart, STDIN_Uart2Buf.aBuf, STDIN_RX_BUF_SIZE);
-
-    // Register board command
-    Cli_Register("info", "MCU Information", &cli_info);
-    Cli_Register("reset", "MCU Reset", &cli_reset);
-    Cli_Register("mem", "Memory write/read", &cli_mem);
-    Cli_Register("nvram", "Non-Volatile RAM operation", &cli_nvram);
-    Cli_Register("qspi", "Quad-SPI flash operation", &cli_qspi);
-    Cli_Register("os", "RTOS operation", &cli_os);
-    Cli_Register("top", "RTOS operation", &cli_top);
-    Cli_Register("rtc", "Real Time Clock operation", &cli_rtc);
-
-    return 0;
-}
-
-void cli_port_deinit()
-{
-    ;
-}
-
-int cli_port_getc(void)
-{
-    return getchar();
 }

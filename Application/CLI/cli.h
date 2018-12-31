@@ -11,6 +11,9 @@
 #define CLI_H_
 
 /*! Includes ----------------------------------------------------------------*/
+#include "cli_port.h"
+#include "stdio.h"
+
 /*! Defines -----------------------------------------------------------------*/
 
 /*!@defgroup ANSI flow control Escape sequence define.
@@ -48,14 +51,16 @@
 /*!@defgroup CLI return code defines
  *
  */
-#define CLI_OK                  0           //!< General success.
-#define CLI_FAIL                -1          //!< General fail.
-#define CLI_PROMPT_CHAR         ">"         //!< Prompt string shows at the head of line
-#define CLI_PROMPT_LEN          1           //!< Prompt string length
-#define CLI_STR_BUF_SIZE        256         //!< Maximum command length
-#define CLI_ARGC_MAX            32          //!< Maximum arguments in a command
-#define CLI_COMMAND_SIZE        32          //!< Number of commands in the list
-#define CLI_VERSION             "1.0.0"     //!< CLI version string
+#define CLI_OK                      0           //!< General success.
+#define CLI_FAIL                    -1          //!< General fail.
+#define CLI_PROMPT_CHAR             ">"         //!< Prompt string shows at the head of line
+#define CLI_PROMPT_LEN              1           //!< Prompt string length
+#define CLI_COMMAND_LEN             256         //!< Maximum command length
+#define CLI_COMMAND_TOKEN_MAX       32          //!< Maximum arguments in a command
+#define CLI_NUM_OF_BUILTIN_CMD      10          //!< Number of built-in commands
+#define CLI_NUM_OF_EXTERNAL_CMD     64          //!< Number of external commands
+#define CLI_NUM_OF_ALIAS            16          //!< Number of alias
+#define CLI_VERSION                 "1.0.0"     //!< CLI version string
 
 /*!@defgroup CLI history function defines
  *
@@ -76,7 +81,7 @@
     if (gCliDebugLevel >= 1)                                                                       \
     {                                                                                              \
         fprintf(stderr, ANSI_RED "%s <%s:%d> " msg ANSI_RESET,                                     \
-                Cli_TimeStampStr(), __FILE__, __LINE__,                                            \
+                CLI_TimeStampStr(), __FILE__, __LINE__,                                            \
                 ##args);                                                                           \
     }
 
@@ -85,7 +90,7 @@
     if (gCliDebugLevel >= 2)                                                                       \
     {                                                                                              \
         fprintf(stdout, ANSI_YELLOW "%s <%s:%d> " msg ANSI_RESET,                                  \
-                Cli_TimeStampStr(), __FILE__, __LINE__,                                            \
+                CLI_TimeStampStr(), __FILE__, __LINE__,                                            \
                 ##args);                                                                           \
     }
 
@@ -94,7 +99,7 @@
     if (gCliDebugLevel >= 3)                                                                       \
     {                                                                                              \
         fprintf(stdout, ANSI_MAGENTE"%s " msg ANSI_RESET,                                          \
-                Cli_TimeStampStr(),                                                                \
+                CLI_TimeStampStr(),                                                                \
                 ##args);                                                                           \
     }
 
@@ -132,13 +137,13 @@ typedef struct
 extern int gCliDebugLevel;
 
 /*! Functions ---------------------------------------------------------------*/
-char *Cli_TimeStampStr(void);
-int Cli_Register(const char *name, const char *prompt, int (*func)(int, char **));
-int Cli_Unregister(const char *name);
-int Cli_RunByArgs(int argcount, char **argbuf);
-int Cli_RunByString(char *cmd);
-int Cli_Init(void);
-int Cli_Run(void);
-void Cli_Task(void const *arguments);
+char *CLI_TimeStampStr(void);
+int CLI_Register(const char *name, const char *prompt, int (*func)(int, char **));
+int CLI_Unregister(const char *name);
+int CLI_ExecuteByArgs(int argcount, char **argbuf);
+int CLI_ExecuteByString(char *cmd);
+int CLI_Init(void);
+int CLI_Run(void);
+void CLI_Task(void const *arguments);
 
 #endif /* CLI_H_ */

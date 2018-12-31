@@ -91,7 +91,7 @@ osThreadId UsbLogger_Handle = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-extern void Cli_Task(void const *arguments);
+extern void CLI_Task(void const *arguments);
 extern void UsbLogger_Task(void const *arguments);
 extern void BoardDriver_Task(void const *arguments);
 extern void SimpleUI_Task(void const *arguments);
@@ -134,7 +134,7 @@ void MX_FREERTOS_Init(void)
     osThreadDef(BoardDriver, BoardDriver_Task, osPriorityNormal, 0, 128);
     BoardDriver_Handle = osThreadCreate(osThread(BoardDriver), NULL);
 
-    osThreadDef(CLI, Cli_Task, osPriorityLow, 0, 256);
+    osThreadDef(CLI, CLI_Task, osPriorityLow, 0, 256);
     Cli_Handle = osThreadCreate(osThread(CLI), NULL);
 
     osThreadDef(SimpleUI, SimpleUI_Task, osPriorityLow, 0, 128);
