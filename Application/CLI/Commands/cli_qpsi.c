@@ -14,13 +14,13 @@
         }                                                                                          \
     } while (0)
 
-extern void *cli_malloc(size_t size);
+extern void *cli_calloc(size_t size);
 extern void  cli_free(void *ptr);
 extern void  print_u8(uint8_t *ptr, uint32_t len);
 
 void *cli_qspi_malloc(int size)
 {
-    return cli_malloc(size);
+    return cli_calloc(size);
 }
 
 void cli_qspi_free(void *ptr)

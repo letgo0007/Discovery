@@ -18,7 +18,7 @@
 #define ADDR_OFFSET 0
 
 /** Private function prototypes ---------------------------------------------*/
-extern void *cli_malloc(size_t size);
+extern void *cli_calloc(size_t size);
 extern void  cli_free(void *ptr);
 
 /** Functions ---------------------------------------------------------------*/
@@ -93,7 +93,7 @@ int cli_mem(int argc, char **argv)
         {
             goto param_error;
         }
-        uint32_t *data = cli_malloc(len * sizeof(uint32_t));
+        uint32_t *data = cli_calloc(len * sizeof(uint32_t));
 
         for (int i = 0; i < len; i++)
         {

@@ -24,7 +24,7 @@ extern int cli_nvram(int argc, char **argv);
  */
 extern void cli_sleep(int ms);
 extern unsigned int cli_gettick(void);
-extern void * cli_malloc(unsigned int size);
+extern void * cli_calloc(unsigned int size);
 extern void cli_free(void *ptr);
 extern int cli_port_init(void);
 extern void cli_port_deinit(void);

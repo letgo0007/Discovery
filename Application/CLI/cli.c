@@ -22,9 +22,9 @@
 extern int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[]);
 
 /** Variables ---------------------------------------------------------------*/
-int gCliDebugLevel = 3;             // Get debug level from Makefile
+int gCliDebugLevel = 3;             // Global debug level
 char * pCmdStrBuf = NULL;           // Command String buffer pointer
-unsigned int CmdStrIdx = 0;         // Command string index
+unsigned int CmdStrIdx = 0; // Command String operation index. This give support for delete & insert function.
 char ** pHistoryPtr = NULL;         // History pointer buffer pointer
 unsigned int HistoryQueueHead = 0;  // History queue head
 unsigned int HistoryQueueTail = 0;  // History queue tail
@@ -153,7 +153,7 @@ char *history_push(char *string)
 
     // Request memory & copy command
     unsigned int len = strlen(string) + 1;
-    char * ptr = cli_malloc(len);
+    char * ptr = cli_calloc(len);
     memcpy(ptr, string, len);
 
     // Save new history queue pointer & queue head.
@@ -715,7 +715,7 @@ int CLI_ExecuteByString(char *cmd)
     }
 
     // Buffer string before run command
-    char *cmd_buf = cli_malloc(strlen(cmd) + 1);
+    char *cmd_buf = cli_calloc(strlen(cmd) + 1);
     strcpy(cmd_buf, cmd);
 
     // Loop until all string is processed.
@@ -724,7 +724,7 @@ int CLI_ExecuteByString(char *cmd)
     {
         // String to arguments
         int argc = 0;
-        char **argv = cli_malloc(sizeof(char *) * CLI_COMMAND_TOKEN_MAX);
+        char **argv = cli_calloc(sizeof(char *) * CLI_COMMAND_TOKEN_MAX);
         sub_cmd = cli_strtoarg(sub_cmd, &argc, argv);
 
         // Run by arguments
@@ -741,13 +741,13 @@ int CLI_Init(void)
 {
     // Initialize operation buffers
     CmdStrIdx = 0;
-    pCmdStrBuf = cli_malloc(sizeof(char) * CLI_COMMAND_LEN);
+    pCmdStrBuf = cli_calloc(sizeof(char) * CLI_COMMAND_LEN);
     pCmdList_Builtin = (CliCommand_TypeDef*) gConstBuiltinCmdList;
-    pCmdList_External = cli_malloc(sizeof(CliCommand_TypeDef) * 32);
-    pCmdList_Alias = cli_malloc(sizeof(CliCommand_TypeDef) * 32);
+    pCmdList_External = cli_calloc(sizeof(CliCommand_TypeDef) * 32);
+    pCmdList_Alias = cli_calloc(sizeof(CliCommand_TypeDef) * 32);
 
 #if HISTORY_ENABLE
-    pHistoryPtr = cli_malloc(sizeof(char *) * HISTORY_DEPTH);
+    pHistoryPtr = cli_calloc(sizeof(char *) * HISTORY_DEPTH);
     history_clear();
 #endif
 
