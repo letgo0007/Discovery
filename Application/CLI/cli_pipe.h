@@ -8,9 +8,25 @@
  * @version V0.1
  *****************************************************************************/
 
-
 #ifndef CLI_PIPE_H_
 #define CLI_PIPE_H_
+
+#define RB_RET_OK           0
+#define RB_RET_ERR_CORRUPT  -1
+#define RB_RET_ERR_PARAM    -2
+#define RB_RET_ERR_MEM      -3
+#define RB_RET_ERR_LOCK     -4
+
+#define MQ_RET_OK           0
+#define MQ_RET_ERR_CORRUPT  -1
+#define MQ_RET_ERR_PARAM    -2
+#define MQ_RET_ERR_MEM      -3
+#define MQ_RET_ERR_LOCK     -4
+
+typedef enum PIPE_LOCK
+{
+    UNLOCK = 0, LOCK = 1,
+} PIPE_LOCK;
 
 typedef struct RingBuf_TypeDef
 {
@@ -18,7 +34,7 @@ typedef struct RingBuf_TypeDef
     int Size;
     int PutIndex;
     int GetIndex;
-    int Lock;
+    PIPE_LOCK Lock;
 } RingBuf_TypeDef;
 
 typedef struct MsgQueue_TypeDef
@@ -29,7 +45,7 @@ typedef struct MsgQueue_TypeDef
     int MemorySize;
     int Head;
     int Tail;
-    int Lock;
+    PIPE_LOCK Lock;
 } MsgQueue_TypeDef;
 
 int RingBuf_Init(RingBuf_TypeDef *pBuf, int size);

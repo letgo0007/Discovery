@@ -20,33 +20,33 @@
  *  Terminal flow control with ANSI escape code.
  *  Refer to <https://en.wikipedia.org/wiki/ANSI_escape_code>
  */
-#define ANSI_CURSOR_UP                  "\e[A"
-#define ANSI_CURSOR_DOWN                "\e[B"
-#define ANSI_CURSOR_RIGHT               "\e[C"
-#define ANSI_CURSOR_LEFT                "\e[D"
-#define ANSI_CURSOR_NEXT_LINE           "\e[E"
-#define ANSI_CURSOR_PREVIOUS_LINE       "\e[F"
-#define ANSI_CURSOR_SAVE_POSITION       "\e[s"
-#define ANSI_CURSOR_RESTORE_POSITION    "\e[u"
+#define ANSI_CUU                    "\e[A"      //!< Cursor Up
+#define ANSI_CUD                    "\e[B"      //!< Cursor Down
+#define ANSI_CUF                    "\e[C"      //!< Cursor Forward
+#define ANSI_CUB                    "\e[D"      //!< Cursor Back
+#define ANSI_CNL                    "\e[E"      //!< Cursor Next Line
+#define ANSI_CPL                    "\e[F"      //!< Cursor Previous Line
+#define ANSI_SCP                    "\e[s"      //!< Save Cursor Position
+#define ANSI_RCP                    "\e[u"      //!< Restore Cursor Position
 
-#define ANSI_ERASE_DISPLAY              "\e[J"
-#define ANSI_ERASE_LINE_START           "\e[1K"
-#define ANSI_ERASE_LINE_END             "\e[K"
-#define ANSI_ERASE_LINE                 "\e[2K"
+#define ANSI_ED                     "\e[J"      //!< Erase Display
+#define ANSI_EL0                    "\e[K"      //!< Erase from curse to line end
+#define ANSI_EL1                    "\e[1K"     //!< Erase from line start to curse
+#define ANSI_EL2                    "\e[2K"     //!< Erase all line
 
-#define ANSI_RESET                      "\e[0m"
-#define ANSI_BOLD                       "\e[1m"
-#define ANSI_ITALIC                     "\e[3m"
-#define ANSI_UNDERLINE                  "\e[4m"
-#define ANSI_BLINK                      "\e[5m"
+#define ANSI_RESET                  "\e[0m"
+#define ANSI_BOLD                   "\e[1m"
+#define ANSI_ITALIC                 "\e[3m"
+#define ANSI_UNDERLINE              "\e[4m"
+#define ANSI_BLINK                  "\e[5m"
 
-#define ANSI_BLACK                      "\e[30m"
-#define ANSI_RED                        "\e[31m"
-#define ANSI_GREEN                      "\e[32m"
-#define ANSI_YELLOW                     "\e[33m"
-#define ANSI_BLUE                       "\e[34m"
-#define ANSI_MAGENTE                    "\e[35m"
-#define ANSI_CYAN                       "\e[36m"
+#define ANSI_BLACK                  "\e[30m"
+#define ANSI_RED                    "\e[31m"
+#define ANSI_GREEN                  "\e[32m"
+#define ANSI_YELLOW                 "\e[33m"
+#define ANSI_BLUE                   "\e[34m"
+#define ANSI_MAGENTE                "\e[35m"
+#define ANSI_CYAN                   "\e[36m"
 
 /*!@defgroup CLI return code defines
  *
@@ -65,9 +65,9 @@
 /*!@defgroup CLI history function defines
  *
  */
-#define HISTORY_ENABLE          1           //!< Enable history function
-#define HISTORY_DEPTH           32          //!< Maximum number of command saved in history
-#define HISTORY_MEM_SIZE        256         //!< Maximum RAM usage for history
+#define HISTORY_ENABLE              1           //!< Enable history function
+#define HISTORY_DEPTH               32          //!< Maximum number of command saved in history
+#define HISTORY_MEM_SIZE            256         //!< Maximum RAM usage for history
 
 // General Print
 #define CLI_PRINT(msg, args...)                                                                    \
@@ -106,7 +106,7 @@
 /*!@typedef CliCommand_TypeDef
  *          Structure for a CLI command.
  */
-typedef struct
+typedef struct CliCommand_TypeDef
 {
     const char *Name;                   //!< Command Name
     const char *Prompt;                 //!< Prompt text
@@ -118,7 +118,7 @@ typedef struct
  *          "getopt" & "getopt_long" function.
  * @example see "builtin_test" function
  */
-typedef struct
+typedef struct CliOption_TypeDef
 {
     const char ShortName; //!< Short name work with "-", e.g. 'h'
     const char *LongName;  //!< Long name work with "--", e.g. "help"

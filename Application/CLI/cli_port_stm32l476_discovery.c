@@ -139,15 +139,15 @@ int _read(int file, char *ptr, int len)
     // Loop get character
     for (int i = 0; i < len; i++)
     {
-        uint8_t c1 = RingBuf_GetChar(&stdin_pipe1);
-        if (c1 != 0xFF)
+        int c1 = RingBuf_GetChar(&stdin_pipe1);
+        if (c1 != EOF)
         {
             *ptr++ = c1;
         }
         else
         {
-            uint8_t c2 = RingBuf_GetChar(&stdin_pipe2);
-            if (c2 != 0xFF)
+            int c2 = RingBuf_GetChar(&stdin_pipe2);
+            if (c2 != EOF)
             {
                 *ptr++ = c2;
             }
@@ -180,7 +180,7 @@ int _write(int file, char *ptr, int len)
         return 0;
     }
 
-    if (file == 1) // STDOUT = 1
+    if ((file == 1) || (file == 2)) //STDOUT = 1, STDERR =2
     {
         CDC_Transmit_FS((uint8_t*) ptr, len);
         MsgQueue_PushToHead(&stdout_pipe, ptr, len);
@@ -198,16 +198,6 @@ int _write(int file, char *ptr, int len)
         return len;
     }
 
-    if (file == 0) // STDERR = 0
-    {
-        // Blocking transmit mode for STDERR ; Higher Priority than STDOUT.
-        HAL_UART_AbortTransmit(STDERR_huart);
-        while (HAL_OK != HAL_UART_Transmit(STDERR_huart, (uint8_t *) ptr, len, 1 + len))
-        {
-            ;
-        }
-        return len;
-    }
     return 0;
 }
 

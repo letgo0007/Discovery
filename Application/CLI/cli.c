@@ -11,6 +11,7 @@
 #include "cli.h"
 #include "cli_builtin.h"
 #include "cli_port.h"
+#include "cli_pipe.h"
 
 #include "stdarg.h"
 #include "stdlib.h"
@@ -22,14 +23,15 @@
 extern int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[]);
 
 /** Variables ---------------------------------------------------------------*/
-int gCliDebugLevel = 3;             // Global debug level
-char * pCmdStrBuf = NULL;           // Command String buffer pointer
-unsigned int CmdStrIdx = 0; // Command String operation index. This give support for delete & insert function.
-char ** pHistoryPtr = NULL;         // History pointer buffer pointer
-unsigned int HistoryQueueHead = 0;  // History queue head
-unsigned int HistoryQueueTail = 0;  // History queue tail
-unsigned int HistoryPullDepth = 0;  // History pull depth
-unsigned int HistoryMemUsage = 0;   // History total memory usage
+int gCliDebugLevel = 3;                 // Global debug level
+char * pCmdStrBuf = NULL;               // Command String buffer pointer
+unsigned int CmdStrIdx = 0;             // Command String operation index.
+
+char ** pHistoryPtr = NULL;             // History pointer buffer pointer
+unsigned int HistoryQueueHead = 0;      // History queue head
+unsigned int HistoryQueueTail = 0;      // History queue tail
+unsigned int HistoryPullDepth = 0;      // History pull depth
+unsigned int HistoryMemUsage = 0;       // History total memory usage
 
 CliCommand_TypeDef *pCmdList_Builtin = NULL;
 CliCommand_TypeDef *pCmdList_External = NULL;
@@ -43,7 +45,7 @@ CliCommand_TypeDef *pCmdList_Alias = NULL;
  * @param pos       Position to insert
  * @return          Pointer to the new string or NULL when it fails.
  */
-char *StrInsert(char *string, char c, int pos)
+char *strinsert(char *string, char c, int pos)
 {
     if ((string == NULL) || (pos > strlen(string)))
     {
@@ -68,7 +70,7 @@ char *StrInsert(char *string, char c, int pos)
  * @param pos       Position to delete
  * @return          Pointer to the new string or NULL when it fails.
  */
-char *StrDelete(char *string, int pos)
+char *strdelete(char *string, int pos)
 {
     if ((string == NULL) || (pos > strlen(string)))
     {
@@ -89,11 +91,10 @@ char *StrDelete(char *string, int pos)
  * @param string    String to print.
  * @param pos       Position to put the curse
  */
-void StrDump(char *string, int pos)
+void strdump(char *string, int pos)
 {
     // Erase terminal line, print new buffer string and Move cursor
-    CLI_PRINT("%s\r%s%s", ANSI_ERASE_LINE, CLI_PROMPT_CHAR, string);
-    CLI_PRINT("\e[%luG", (uint32_t)pos + strlen(CLI_PROMPT_CHAR) + 1);
+    CLI_PRINT("%s\r%s%s\e[%dG", ANSI_EL2, CLI_PROMPT_CHAR, string, pos + CLI_PROMPT_LEN + 1);
 }
 
 /*!@brief Clear history buffer & heap.
@@ -203,23 +204,17 @@ char *history_pull(int depth)
         memset(pCmdStrBuf, 0, CLI_COMMAND_LEN);
         strcpy(pCmdStrBuf, pHistoryPtr[pull_idx]);
         CmdStrIdx = strlen(pCmdStrBuf);
-
-        // Print new line on console
-        StrDump(pCmdStrBuf, CmdStrIdx);
     }
     else
     {
         // Put string buffer to empty if no history
         memset(pCmdStrBuf, 0, CLI_COMMAND_LEN);
         CmdStrIdx = 0;
-        // Print new line on console
-        StrDump(pCmdStrBuf, CmdStrIdx);
     }
-
     return pHistoryPtr[pull_idx];
 }
 
-/*!@brief Handle specail key from key board.
+/*!@brief Handle special key from key board.
  *        Check if a string is part of ANSI escape sequence.
  *        Refer to <https://en.wikipedia.org/wiki/ANSI_escape_code>
  *        Loop put the character from a string to this function.
@@ -230,7 +225,7 @@ char *history_pull(int depth)
  * @retval 0    The character is part of escape sequence.
  * @retval c    The character is not part
  */
-int handle_special_key(char c)
+int cli_handle_sepcialkey(char c)
 {
     static char EscBuf[8] = { 0 };
     static int EscIdx = 0;
@@ -254,36 +249,40 @@ int handle_special_key(char c)
         // Put character to Escape sequence buffer
         EscBuf[EscIdx++] = c;
 
-        if (strcmp(EscBuf, ANSI_CURSOR_UP) == 0) //!< Up Arrow
+        if (strcmp(EscBuf, ANSI_CUU) == 0) //!< Up Arrow
         {
             if (HistoryPullDepth < history_getdepth())
             {
                 HistoryPullDepth++;
             }
             history_pull(HistoryPullDepth);
+            // Print new line on console
+            strdump(pCmdStrBuf, CmdStrIdx);
         }
-        else if (strcmp(EscBuf, ANSI_CURSOR_DOWN) == 0) //!< Down Arrow
+        else if (strcmp(EscBuf, ANSI_CUD) == 0) //!< Down Arrow
         {
             if (HistoryPullDepth > 0)
             {
                 HistoryPullDepth--;
             }
             history_pull(HistoryPullDepth);
+            // Print new line on console
+            strdump(pCmdStrBuf, CmdStrIdx);
         }
-        else if (strcmp(EscBuf, ANSI_CURSOR_RIGHT) == 0) //!< Right arrow
+        else if (strcmp(EscBuf, ANSI_CUF) == 0) //!< Right arrow
         {
             if (pCmdStrBuf[CmdStrIdx] != 0)
             {
                 CmdStrIdx++;
-                CLI_PRINT("%s", ANSI_CURSOR_RIGHT);
+                CLI_PRINT("%s", ANSI_CUF);
             }
         }
-        else if (strcmp(EscBuf, ANSI_CURSOR_LEFT) == 0) //!< Left arrow
+        else if (strcmp(EscBuf, ANSI_CUB) == 0) //!< Left arrow
         {
             if (CmdStrIdx > 0)
             {
                 CmdStrIdx--;
-                CLI_PRINT("%s", ANSI_CURSOR_LEFT);
+                CLI_PRINT("%s", ANSI_CUB);
             }
         }
 
@@ -441,10 +440,10 @@ char *cli_getline(void)
             if (CmdStrIdx > 0)
             {
                 // Delete 1 byte from buffer.
-                StrDelete(pCmdStrBuf, CmdStrIdx);
+                strdelete(pCmdStrBuf, CmdStrIdx);
                 CmdStrIdx--;
                 // Print New line
-                StrDump(pCmdStrBuf, CmdStrIdx);
+                strdump(pCmdStrBuf, CmdStrIdx);
             }
             break;
         }
@@ -469,7 +468,7 @@ char *cli_getline(void)
         default:
         {
             // Handle special keys first
-            if (handle_special_key(c) == 0)
+            if (cli_handle_sepcialkey(c) == 0)
             {
                 return 0;
             }
@@ -478,7 +477,7 @@ char *cli_getline(void)
                 if (strlen(pCmdStrBuf) < CLI_COMMAND_LEN - 2)
                 {
                     // Insert 1 byte to buffer
-                    StrInsert(pCmdStrBuf, c, CmdStrIdx);
+                    strinsert(pCmdStrBuf, c, CmdStrIdx);
                     CmdStrIdx++;
 
                     // Loop back a char or line
@@ -488,7 +487,7 @@ char *cli_getline(void)
                     }
                     else
                     {
-                        StrDump(pCmdStrBuf, CmdStrIdx);
+                        strdump(pCmdStrBuf, CmdStrIdx);
                     }
                 }
             }
@@ -577,6 +576,14 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
     return NULL;
 }
 
+/*!@brief   Execute a command with given command list.
+ *
+ * @param   argc        Argument count
+ * @param   args        Argument vector
+ * @param   pCmdList    Pointer to command list
+ * @return  CLI_FAIL    Can't find the command in the command list, unknown command.
+ *          CLI_OK      Command execute success.
+ */
 int cli_excute(int argc, char **args, CliCommand_TypeDef *pCmdList)
 {
     if ((argc == 0) || (args == NULL))
@@ -667,7 +674,10 @@ int CLI_Unregister(const char *name)
     return CLI_FAIL;
 }
 
-/*!@brief   Run the CLI by given arguments.
+/*!@brief   Execute a command (arguments format)
+ *          This function will go through both command list
+ *          @var pCmdList_Builtin
+ *          @var pCmdList_External
  *
  * @param   argc
  * @param   args
@@ -700,12 +710,11 @@ int CLI_ExecuteByArgs(int argc, char **args)
 
 }
 
-/*!@brief   Run the CLI by given string.
- *          This function will conver the command string to arguments and run
- * Cli_RunByArgs.
+/*!@brief   Execute a command (string format)
+ *          This function will convert the command string to arguments and call CLI_ExecuteByArgs.
  *
  * @param   cmd     Command string, e.g. "test -i 123"
- * @return
+ * @return  CLI_OK or CLI_FAIL of the process.
  */
 int CLI_ExecuteByString(char *cmd)
 {
@@ -737,14 +746,20 @@ int CLI_ExecuteByString(char *cmd)
     return CLI_OK;
 }
 
+/*!@brief Initialize the CLI
+ *
+ * @return CLI_OK or CLI_FAIL of the process.
+ */
 int CLI_Init(void)
 {
     // Initialize operation buffers
     CmdStrIdx = 0;
     pCmdStrBuf = cli_calloc(sizeof(char) * CLI_COMMAND_LEN);
+
+    // Initialize command list
     pCmdList_Builtin = (CliCommand_TypeDef*) gConstBuiltinCmdList;
-    pCmdList_External = cli_calloc(sizeof(CliCommand_TypeDef) * 32);
-    pCmdList_Alias = cli_calloc(sizeof(CliCommand_TypeDef) * 32);
+    pCmdList_External = cli_calloc(sizeof(CliCommand_TypeDef) * CLI_NUM_OF_EXTERNAL_CMD);
+    pCmdList_Alias = cli_calloc(sizeof(CliCommand_TypeDef) * CLI_NUM_OF_ALIAS);
 
 #if HISTORY_ENABLE
     pHistoryPtr = cli_calloc(sizeof(char *) * HISTORY_DEPTH);
