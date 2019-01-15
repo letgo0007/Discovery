@@ -10,6 +10,7 @@
 
 #include "stm32l4xx_hal.h"
 
+// clang-format off
 /*!@defgroup  FLASH Address define.
  *
  * STM32L476 1 MB Dual bank organization, <RM0351> page97
@@ -39,6 +40,7 @@
 #define FLASH_OTP_ADDR                  0x1FFF7000
 #define FLASH_OTP_DATABYTE              8
 #define FLASH_OTP_SIZE                  1024
+// clang-format on
 
 uint32_t Flash_setActiveBank(uint32_t flashbank);
 uint32_t Flash_getActiveBank();

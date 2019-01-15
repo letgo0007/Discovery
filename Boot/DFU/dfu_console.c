@@ -11,11 +11,11 @@
 
 /*! Includes ----------------------------------------------------------------*/
 
-#include "stm32l4xx_hal.h"
-#include "string.h"
+#include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "stdarg.h"
+#include "stm32l4xx_hal.h"
+#include "string.h"
 
 #include "dfu_console.h"
 #include "dfu_flash_if.h"
@@ -25,8 +25,8 @@
 /*! Variables ---------------------------------------------------------------*/
 extern UART_HandleTypeDef huart2;
 
-uint8_t *Dfu_InputBuf = NULL;
-uint16_t Dfu_InputIdx = 0;
+uint8_t *Dfu_InputBuf  = NULL;
+uint16_t Dfu_InputIdx  = 0;
 uint8_t *Dfu_OutputBuf = NULL;
 uint16_t Dfu_OutputIdx = 0;
 
@@ -68,12 +68,12 @@ uint8_t ascii_to_u4(uint8_t ascii, uint8_t *value)
 int ascii_to_u8(char *string, uint16_t len, uint8_t *value)
 {
     uint16_t i;
-    int status = 0;
+    int      status = 0;
 
     for (i = 0; i < len; i = i + 2)
     {
         uint8_t high_4bit = 0;
-        uint8_t low_4bit = 0;
+        uint8_t low_4bit  = 0;
 
         status = ascii_to_u4(string[i], &high_4bit);
         status += ascii_to_u4(string[i + 1], &low_4bit);
@@ -101,7 +101,7 @@ int dfu_flush(void)
     }
 
     static uint16_t last_head = 0;
-    static uint16_t last_len = 0;
+    static uint16_t last_len  = 0;
 
     // Flush output buffer only when UART TX is not busy
     HAL_UART_StateTypeDef state = HAL_UART_GetState(&huart2);
@@ -124,23 +124,24 @@ int dfu_flush(void)
 
     // Find something in the buffer is not empty
     int head = last_head;
-    int len = 0;
+    int len  = 0;
     if (Dfu_OutputBuf[head] != 0)
     {
-        len = strlen((const char*) &Dfu_OutputBuf[last_head]);
+        len = strlen((const char *)&Dfu_OutputBuf[last_head]);
     }
 
     // Trigger transfer
     HAL_UART_Transmit_DMA(&huart2, &Dfu_OutputBuf[head], len);
     last_head = head;
-    last_len = len;
+    last_len  = len;
 
     return len;
 }
 
 /*!@brief   Print for DFU function.
  *          Works like printf() with a output buffer enabled.
- *          Print string will first be pushed to the ring buffer of Dfu_OutputBuf and dfu_flush() will trigger the transfer.
+ *          Print string will first be pushed to the ring buffer of Dfu_OutputBuf and dfu_flush()
+ * will trigger the transfer.
  *
  * @param   fmt     printf() style format.
  * @return
@@ -155,9 +156,9 @@ int dfu_print(char *fmt, ...)
     // Virtual print to buffer
     va_list argptr;
     va_start(argptr, fmt);
-    int cnt;
-    char buffer[1024] = { 0 };
-    cnt = vsprintf(buffer, fmt, argptr);
+    int  cnt;
+    char buffer[1024];
+    cnt               = vsprintf(buffer, fmt, argptr);
     va_end(argptr);
 
     // Copy to output buffer
@@ -173,8 +174,8 @@ int dfu_print(char *fmt, ...)
 }
 
 /*!@brief   Get a char from DFU input port (typically UART)
- *          The UART RX data will be buffered in Dfu_InputBuf by UART hardware & DMA and wait for this function to read.
- *          works like getchar() of stdio.
+ *          The UART RX data will be buffered in Dfu_InputBuf by UART hardware & DMA and wait for
+ * this function to read. works like getchar() of stdio.
  * @return  EOF(-1)     : No data is received.
  *          0x00~0xFE   : received data.
  */
@@ -205,50 +206,50 @@ int dfu_getchar()
  */
 int dfu_getline(char *line)
 {
-    static char linebuf[HEX_MAX_STRING_LENGTH] = { 0 };
-    static int idx = 0;
-    int c = 0;
+    static char linebuf[HEX_MAX_STRING_LENGTH] = {0};
+    static int  idx                            = 0;
+    int         c                              = 0;
 
     do
     {
-        //Get 1 char and check
+        // Get 1 char and check
         c = dfu_getchar();
 
-        //Handle characters
+        // Handle characters
         switch (c)
         {
-        case 0x00:  //NULL for ASCII
-        case 0xFF:  //EOF for ASCII
-        case EOF:   //EOF for STDIN
-        case '\n':  //End of a line, Unix/Windows Style.
+        case 0x00: // NULL for ASCII
+        case 0xFF: // EOF for ASCII
+        case EOF:  // EOF for STDIN
+        case '\n': // End of a line, Unix/Windows Style.
         {
             break;
         }
-        case '\r':  //End of a line, MacOS style
+        case '\r': // End of a line, MacOS style
         {
-            if (idx < 1) //Empty line with "/n"
+            if (idx < 1) // Empty line with "/n"
             {
                 dfu_print("\n]");
             }
             else
             {
-                //Copy out line buffer
+                // Copy out line buffer
                 memcpy(line, linebuf, idx);
 
-                //Clear buffer and index
+                // Clear buffer and index
                 memset(linebuf, 0, idx);
                 int ret = idx;
-                idx = 0;
-                return ret; //return copy data count
+                idx     = 0;
+                return ret; // return copy data count
             }
             break;
         }
         default:
         {
-            //Buffer 1 byte
+            // Buffer 1 byte
             linebuf[idx++] = c;
 
-            //echo back if it's not a ihex line.
+            // echo back if it's not a ihex line.
             if (linebuf[0] != ':')
             {
                 dfu_print("%c", c);
@@ -287,15 +288,15 @@ void dfu_io_deinit(void)
  * @param   string  : ":020000040800F2" Intel Hex file line, start with ':'
  * @param   len     : Length of string
  * @param   hexline : Pointer to hex line structure.
- * @return  @ref Dfu_RetTypeDef
+ * @return  @ref DFU_RET
  */
-Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexline)
+DFU_RET Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexline)
 {
     if (string[0] == ':')
     {
-        uint8_t u8buf[256] = { 0 };
-        uint8_t u8len = 0;
-        uint8_t sum = 0;
+        uint8_t u8buf[256] = {0};
+        uint8_t u8len      = 0;
+        uint8_t sum        = 0;
 
         /*! Convert ASCII string to uint8_t, 2x ASIIC to 1x u8.
          *
@@ -304,7 +305,7 @@ Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexli
         if (-1 == ascii_to_u8(&string[1], len - 1, u8buf))
         {
             hexline->ErrorCount++;
-            return DFU_BYTE_ERR; //Hex Data convert Error
+            return DFU_BYTE_ERR; // Hex Data convert Error
         }
 
         /*!Check Format, HEX file line format:
@@ -320,17 +321,17 @@ Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexli
          * N = 5 + Data Length
          * Sum(0,1,...,N) & 0xFF = 0x00
          */
-        hexline->Header = ':';
+        hexline->Header     = ':';
         hexline->DataLength = u8buf[0];
         hexline->DataOffset = u8buf[1] * 256 + u8buf[2];
-        hexline->DataType = u8buf[3];
-        hexline->CheckSum = u8buf[4 + hexline->DataLength];
+        hexline->DataType   = u8buf[3];
+        hexline->CheckSum   = u8buf[4 + hexline->DataLength];
 
         /*! Check Data Length */
         if ((5 + hexline->DataLength) != u8len)
         {
             hexline->ErrorCount++;
-            return DFU_LENGTH_ERR; //Line Length Error
+            return DFU_LENGTH_ERR; // Line Length Error
         }
 
         /*! Check Sum */
@@ -342,7 +343,7 @@ Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexli
         if ((sum & 0x00FF) != 0x0000)
         {
             hexline->ErrorCount++;
-            return DFU_CHECKSUM_ERR; //CheckSum Error
+            return DFU_CHECKSUM_ERR; // CheckSum Error
         }
 
         /*! Export Data */
@@ -352,7 +353,7 @@ Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexli
     }
     else
     {
-        return DFU_FORMAT_ERR; //Invalid Header Error
+        return DFU_FORMAT_ERR; // Invalid Header Error
     }
 }
 
@@ -361,37 +362,37 @@ Dfu_RetTypeDef Hex_ParseLine(char *string, int len, Dfu_HexLineTypeDefine *hexli
  * @param hexline   : Pointer to a hexline structure.
  * @return
  */
-Dfu_RetTypeDef Hex_ExcuteLine(Dfu_HexLineTypeDefine *hexline)
+DFU_RET Hex_ExcuteLine(Dfu_HexLineTypeDefine *hexline)
 {
     uint32_t base_addr = 0;
-    uint32_t address = 0;
+    uint32_t address   = 0;
 
-    //Get current boot bank
+    // Get current boot bank
     uint32_t CurrentBank = Flash_getActiveBank();
-    uint32_t OtherBank = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
+    uint32_t OtherBank   = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
 
     switch (hexline->DataType)
     {
     case HEX_DATATYPE_DATA: //!< Write Byte to Flash
-        //Calculate Address on backup bank
-        address = hexline->BaseAddress + hexline->DataOffset - FLASH_BASE
-                + Flash_getAddress(OtherBank, 0);
+        // Calculate Address on backup bank
+        address = hexline->BaseAddress + hexline->DataOffset - FLASH_BASE +
+                  Flash_getAddress(OtherBank, 0);
 
-        //Write Flash
+        // Write Flash
         Flash_program_8bit(address, hexline->DataBuf, hexline->DataLength);
 
-        //Add byte count
+        // Add byte count
         hexline->ByteCount += hexline->DataLength;
 
         if (hexline->ByteCount % 1024 <= 8)
         {
             dfu_print("\r[%4d kB]", hexline->ByteCount / 1024 + 1);
-            //dfu_print("#");
+            // dfu_print("#");
         }
 
         break;
     case HEX_DATATYPE_END: //!< End of a Hex File
-        //End of operation
+        // End of operation
         dfu_print("\r\n[%03d.%03d]Hex: End of file\n", HAL_GetTick() / 1000, HAL_GetTick() % 1000);
         dfu_print("Hex: LineCount  = %ld\n", hexline->LineCount);
         dfu_print("Hex: ErrorCount = %ld\n", hexline->ErrorCount);
@@ -410,27 +411,27 @@ Dfu_RetTypeDef Hex_ExcuteLine(Dfu_HexLineTypeDefine *hexline)
         }
         break;
     case HEX_DATATYPE_EXT_SEG_ADDR:
-        //Not Used
+        // Not Used
         break;
     case HEX_DATATYPE_START_SEG_ADDR:
-        //Not Used
+        // Not Used
         break;
     case HEX_DATATYPE_LINEAR_ADDR: //!< Set Base Address
-        //Set Base Address
-        base_addr = (uint32_t) (hexline->DataBuf[0] * 256 + hexline->DataBuf[1]) << 16;
+        // Set Base Address
+        base_addr            = (uint32_t)(hexline->DataBuf[0] * 256 + hexline->DataBuf[1]) << 16;
         hexline->BaseAddress = base_addr;
         dfu_print("\r\n[%03d.%03d]Hex: Set Base Address @ 0x%08lX\n", HAL_GetTick() / 1000,
-                HAL_GetTick() % 1000, base_addr);
+                  HAL_GetTick() % 1000, base_addr);
         break;
     case HEX_DATATYPE_START_ADDR: //!< Set
-        address = (uint32_t) (hexline->DataBuf[0] * 256 + hexline->DataBuf[1]) << 16;
+        address = (uint32_t)(hexline->DataBuf[0] * 256 + hexline->DataBuf[1]) << 16;
         dfu_print("\r\n[%03d.%03d]Hex: Set Start Address @ 0x%08lX\n", HAL_GetTick() / 1000,
-                HAL_GetTick() % 1000, address);
+                  HAL_GetTick() % 1000, address);
         fflush(stdout);
         HAL_Delay(3);
         break;
     default:
-        //Error
+        // Error
         hexline->ErrorCount++;
         dfu_print("DATA Type not support!");
         break;
@@ -441,9 +442,9 @@ Dfu_RetTypeDef Hex_ExcuteLine(Dfu_HexLineTypeDefine *hexline)
 uint32_t Dfu_selectBootBank()
 {
     //!< Get current working bank
-    Dfu_RetTypeDef ret = DFU_OK;
+    DFU_RET  ret         = DFU_OK;
     uint32_t CurrentBank = Flash_getActiveBank();
-    uint32_t OtherBank = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
+    uint32_t OtherBank   = FLASH_BANK_2 + FLASH_BANK_1 - CurrentBank;
 
     dfu_print("%s: Boot from flash bank [%ld]\n", __FILE__, CurrentBank);
 
@@ -454,10 +455,10 @@ uint32_t Dfu_selectBootBank()
     }
     else /*! Single work bank is selected, and Boot from download bank. */
     {
-        //Single work bank is selected, copy and jump to the other bank.
+        // Single work bank is selected, copy and jump to the other bank.
         HAL_Delay(10);
         dfu_print("\e[33m%s: Work bank is [%ld], Try copy bank[%ld]->bank[%ld].\n\e[0m", __FILE__,
-        DFU_WORK_BANK, CurrentBank, OtherBank);
+                  DFU_WORK_BANK, CurrentBank, OtherBank);
 
         ret = Flash_copyBank(CurrentBank, OtherBank);
 
@@ -466,7 +467,6 @@ uint32_t Dfu_selectBootBank()
             dfu_print("\n\e[33mBank Copy Success! Reboot to bank[%ld].\e[0m\n", OtherBank);
             Flash_setActiveBank(OtherBank);
         }
-
     }
 
     return CurrentBank;
@@ -487,7 +487,7 @@ uint32_t Dfu_selectBootBank()
  *
  */
 
-Dfu_RetTypeDef Bsp_Dfu_Init()
+DFU_RET Bsp_Dfu_Init()
 {
     /*! 1. Initialize IO */
     dfu_io_init();
@@ -495,7 +495,7 @@ Dfu_RetTypeDef Bsp_Dfu_Init()
 
     /*! 2. Select Boot bank & DFU bank*/
     uint32_t BootBank = Dfu_selectBootBank();
-    uint32_t DfuBank = FLASH_BANK_2 + FLASH_BANK_1 - BootBank;
+    uint32_t DfuBank  = FLASH_BANK_2 + FLASH_BANK_1 - BootBank;
 
     /*! 3. Wait Keyboard to enter DFU console. */
     dfu_print("%s: Press [Enter] to enter DFU console, wait %d ms.\n", __FILE__, DFU_BOOT_DELAY);
@@ -507,8 +507,8 @@ Dfu_RetTypeDef Bsp_Dfu_Init()
         {
             dfu_print("\n========Start of DFU=========\n");
 
-            //Erase target flash
-            //Flash_erasePage(DfuBank, 0, DFU_MAX_PAGE);
+            // Erase target flash
+            // Flash_erasePage(DfuBank, 0, DFU_MAX_PAGE);
             Flash_eraseBank(DfuBank);
 
             // Run DFU console
@@ -528,32 +528,33 @@ Dfu_RetTypeDef Bsp_Dfu_Init()
  *
  * @return
  */
-Dfu_RetTypeDef Bsp_Dfu_Console()
+DFU_RET Bsp_Dfu_Console()
 {
-    const char *Dfu_helptext = "\n"
-            "\e[1m\e[5m===Mini DFU console===\e[0m\n"
-            "FW Download: Transmit the <.hex> file through UART, e.g.\n"
-            "             \e[4mcat ./Build/discovery.hex >/dev/cu.usbmodem14203\e[0m\n"
-            "quit   | q : Quit DFU mode\n"
-            "status | s : Show DFU status.\n"
-            "help       : Show this help text.\r\n";
+    const char *Dfu_helptext =
+        "\n"
+        "\e[1m\e[5m===Mini DFU console===\e[0m\n"
+        "FW Download: Transmit the <.hex> file through UART, e.g.\n"
+        "             \e[4mcat ./Build/discovery.hex >/dev/cu.usbmodem14203\e[0m\n"
+        "quit   | q : Quit DFU mode\n"
+        "status | s : Show DFU status.\n"
+        "help       : Show this help text.\r\n";
 
-    static int str_len = 0;
-    static char str_buf[HEX_MAX_STRING_LENGTH] = { 0 };
-    static Dfu_HexLineTypeDefine hexline = { 0 };
+    static int                   str_len                        = 0;
+    static char                  str_buf[HEX_MAX_STRING_LENGTH] = {0};
+    static Dfu_HexLineTypeDefine hexline                        = {0};
 
-    Dfu_RetTypeDef ret = DFU_OK;
+    DFU_RET ret = DFU_OK;
 
     dfu_print("\r\n]");
 
     while (1)
     {
-        //Get Line from UART
+        // Get Line from UART
         str_len = dfu_getline(str_buf);
 
         if (str_len > 0)
         {
-            //Process command
+            // Process command
             if (strcmp(str_buf, "help") == 0)
             {
                 dfu_print("\n%s", Dfu_helptext);
@@ -572,11 +573,11 @@ Dfu_RetTypeDef Bsp_Dfu_Console()
             }
             else if (str_buf[0] == ':')
             {
-                //Parse sting using ihex format
+                // Parse sting using ihex format
                 ret = Hex_ParseLine(str_buf, str_len, &hexline);
                 if (ret == DFU_OK)
                 {
-                    //Process HEX line
+                    // Process HEX line
                     ret = Hex_ExcuteLine(&hexline);
                     if (ret != DFU_OK)
                     {
@@ -589,7 +590,7 @@ Dfu_RetTypeDef Bsp_Dfu_Console()
                     dfu_print("ERROR: Dfu_parseHexLine fail, error code = [%d]\n", ret);
                 }
 
-                //Clear buffer after successfully run a command.
+                // Clear buffer after successfully run a command.
                 memset(str_buf, 0, sizeof(str_buf));
                 str_len = 0;
             }
@@ -598,7 +599,7 @@ Dfu_RetTypeDef Bsp_Dfu_Console()
                 dfu_print("\nERROR: Unknown command, try [help].\n");
             }
 
-            //Clear empty line
+            // Clear empty line
             memset(str_buf, 0, sizeof(str_buf));
             str_len = 0;
         }

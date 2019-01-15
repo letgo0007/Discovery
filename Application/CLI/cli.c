@@ -10,8 +10,8 @@
 
 #include "cli.h"
 #include "cli_builtin.h"
-#include "cli_port.h"
 #include "cli_pipe.h"
+#include "cli_port.h"
 
 #include "stdarg.h"
 #include "stdlib.h"
@@ -20,22 +20,21 @@
 /** Private defines ---------------------------------------------------------*/
 
 /** Private function prototypes ---------------------------------------------*/
-extern int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[]);
 
 /** Variables ---------------------------------------------------------------*/
-int gCliDebugLevel = 3;                 // Global debug level
-char * pCmdStrBuf = NULL;               // Command String buffer pointer
-unsigned int CmdStrIdx = 0;             // Command String operation index.
+int          gCliDebugLevel = 3;    // Global debug level
+char *       pCmdStrBuf     = NULL; // Command String buffer pointer
+unsigned int CmdStrIdx      = 0;    // Command String operation index.
 
-char ** pHistoryPtr = NULL;             // History pointer buffer pointer
-unsigned int HistoryQueueHead = 0;      // History queue head
-unsigned int HistoryQueueTail = 0;      // History queue tail
-unsigned int HistoryPullDepth = 0;      // History pull depth
-unsigned int HistoryMemUsage = 0;       // History total memory usage
+char **      pHistoryPtr      = NULL; // History pointer buffer pointer
+unsigned int HistoryQueueHead = 0;    // History queue head
+unsigned int HistoryQueueTail = 0;    // History queue tail
+unsigned int HistoryPullDepth = 0;    // History pull depth
+unsigned int HistoryMemUsage  = 0;    // History total memory usage
 
-CliCommand_TypeDef *pCmdList_Builtin = NULL;
+CliCommand_TypeDef *pCmdList_Builtin  = NULL;
 CliCommand_TypeDef *pCmdList_External = NULL;
-CliCommand_TypeDef *pCmdList_Alias = NULL;
+CliCommand_TypeDef *pCmdList_Alias    = NULL;
 
 /** Functions ---------------------------------------------------------------*/
 /*!@brief Insert a char to a position of a string.
@@ -100,7 +99,7 @@ void strdump(char *string, int pos)
 /*!@brief Clear history buffer & heap.
  *
  */
-void history_clear(void)
+void history_init(void)
 {
     if (pHistoryPtr != NULL)
     {
@@ -118,26 +117,8 @@ void history_clear(void)
         HistoryQueueHead = 0;
         HistoryQueueTail = 0;
         HistoryPullDepth = 0;
-        HistoryMemUsage = 0;
+        HistoryMemUsage  = 0;
     }
-}
-
-/*!@brief Get the number of commands stored in history heap.
- *
- * @return
- */
-int history_getdepth(void)
-{
-    return HistoryQueueHead - HistoryQueueTail;
-}
-
-/*!@brief Get the number of bytes heap memory used to store history string.
- *
- * @return
- */
-int history_getmem(void)
-{
-    return HistoryMemUsage;
 }
 
 /*!@brief Push a string to history queue head.
@@ -154,7 +135,7 @@ char *history_push(char *string)
 
     // Request memory & copy command
     unsigned int len = strlen(string) + 1;
-    char * ptr = cli_calloc(len);
+    char *       ptr = cli_calloc(len);
     memcpy(ptr, string, len);
 
     // Save new history queue pointer & queue head.
@@ -163,7 +144,8 @@ char *history_push(char *string)
     HistoryMemUsage += len;
 
     // Release History buffer if number or memory usage out of limit
-    while ((history_getdepth() >= HISTORY_DEPTH) || (history_getmem() >= HISTORY_MEM_SIZE))
+    while ((HistoryQueueHead - HistoryQueueTail >= HISTORY_DEPTH) ||
+           (HistoryMemUsage >= HISTORY_MEM_SIZE))
     {
         // Release from Queue Tail
         int idx = HistoryQueueTail % HISTORY_DEPTH;
@@ -227,15 +209,15 @@ char *history_pull(int depth)
  */
 int cli_handle_sepcialkey(char c)
 {
-    static char EscBuf[8] = { 0 };
-    static int EscIdx = 0;
-    static char EscFlag = 0;
+    static char EscBuf[8] = {0};
+    static int  EscIdx    = 0;
+    static char EscFlag   = 0;
 
     // Start of ESC flow control
     if (c == '\e')
     {
         EscFlag = 1;
-        EscIdx = 0;
+        EscIdx  = 0;
         memset(EscBuf, 0, 8);
     }
 
@@ -251,7 +233,7 @@ int cli_handle_sepcialkey(char c)
 
         if (strcmp(EscBuf, ANSI_CUU) == 0) //!< Up Arrow
         {
-            if (HistoryPullDepth < history_getdepth())
+            if (HistoryPullDepth < HistoryQueueHead - HistoryQueueTail)
             {
                 HistoryPullDepth++;
             }
@@ -334,17 +316,17 @@ int cli_handle_sepcialkey(char c)
  */
 int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[])
 {
-    static int op_argc = 0;
+    static int    op_argc = 0;
     static char **op_args = NULL;
-    static int op_idx = 0;
-    static int op_ret = '?';
+    static int    op_idx  = 0;
+    static int    op_ret  = '?';
 
     if ((op_argc != argc) || (op_args != args))
     {
         op_argc = argc;
         op_args = args;
-        op_idx = 1; // ignore the 1st argument, it's the command name.
-        op_ret = '?';
+        op_idx  = 1; // ignore the 1st argument, it's the command name.
+        op_ret  = '?';
     }
 
     if ((op_argc > 0) && (op_idx < op_argc) && (op_args[op_idx] != NULL))
@@ -368,7 +350,7 @@ int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options
                 i++;
             }
             *data_ptr = args[op_idx];
-            op_ret = '?';
+            op_ret    = '?';
             goto exit;
         }
         // Short Options with "-"
@@ -387,7 +369,7 @@ int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options
                 i++;
             }
             *data_ptr = args[op_idx];
-            op_ret = '?';
+            op_ret    = '?';
             goto exit;
         }
         // Data options
@@ -402,7 +384,8 @@ int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options
         return -1;
     }
 
-    exit: op_idx++;
+exit:
+    op_idx++;
     return op_ret;
 }
 
@@ -461,7 +444,7 @@ char *cli_getline(void)
             CLI_PRINT("\n");
 
             // Return pointer and length
-            CmdStrIdx = 0;
+            CmdStrIdx        = 0;
             HistoryPullDepth = 0;
             return pCmdStrBuf;
         }
@@ -514,8 +497,8 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
         return NULL;
     }
 
-    *argc = 0;
-    char flag_quote = 0; // Flags for inside 2x quote mark ""
+    *argc              = 0;
+    char flag_quote    = 0; // Flags for inside 2x quote mark ""
     char flag_arg_head = 0; // Flags to mark argument head
 
     for (int i = 0; str[i] != 0; i++)
@@ -531,7 +514,7 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
         {
             // Set ignore flag up. string inside "" will not be processed.
             flag_quote = !flag_quote;
-            str[i] = 0;
+            str[i]     = 0;
             break;
         }
         case ';':
@@ -539,7 +522,7 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
             // Command separator, return tail commands for next process.
             if (flag_quote == 0)
             {
-                str[i] = 0;
+                str[i]     = 0;
                 char *tail = str + i + 1;
 
                 return (*tail == 0) ? NULL : tail;
@@ -554,7 +537,7 @@ char *cli_strtoarg(char *str, int *argc, char **argv)
             // Separators
             if (flag_quote == 0)
             {
-                str[i] = 0;
+                str[i]        = 0;
                 flag_arg_head = 0;
             }
             break;
@@ -609,7 +592,7 @@ int cli_excute(int argc, char **args, CliCommand_TypeDef *pCmdList)
 
 char *CLI_TimeStampStr(void)
 {
-    static char timestamp[16] = { 0 };
+    static char timestamp[16] = {0};
 
     uint32_t tick = cli_gettick();
 
@@ -640,9 +623,9 @@ int CLI_Register(const char *name, const char *prompt, int (*func)(int, char **)
         // Find a empty slot to save the command.
         if ((pCmdList_External[i].Name == NULL) && (pCmdList_External[i].Func == NULL))
         {
-            pCmdList_External[i].Name = name;
+            pCmdList_External[i].Name   = name;
             pCmdList_External[i].Prompt = prompt;
-            pCmdList_External[i].Func = func;
+            pCmdList_External[i].Func   = func;
 
             return i;
         }
@@ -664,9 +647,9 @@ int CLI_Unregister(const char *name)
         // Delete the command
         if (strcmp(pCmdList_External[i].Name, name) == 0)
         {
-            pCmdList_External[i].Name = NULL;
+            pCmdList_External[i].Name   = NULL;
             pCmdList_External[i].Prompt = NULL;
-            pCmdList_External[i].Func = NULL;
+            pCmdList_External[i].Func   = NULL;
 
             return i;
         }
@@ -707,7 +690,6 @@ int CLI_ExecuteByArgs(int argc, char **args)
 
     CLI_ERROR("ERROR: Unknown command of [%s], try [help].\n", args[0]);
     return CLI_FAIL;
-
 }
 
 /*!@brief   Execute a command (string format)
@@ -732,9 +714,9 @@ int CLI_ExecuteByString(char *cmd)
     do
     {
         // String to arguments
-        int argc = 0;
+        int    argc = 0;
         char **argv = cli_calloc(sizeof(char *) * CLI_COMMAND_TOKEN_MAX);
-        sub_cmd = cli_strtoarg(sub_cmd, &argc, argv);
+        sub_cmd     = cli_strtoarg(sub_cmd, &argc, argv);
 
         // Run by arguments
         CLI_ExecuteByArgs(argc, argv);
@@ -753,17 +735,17 @@ int CLI_ExecuteByString(char *cmd)
 int CLI_Init(void)
 {
     // Initialize operation buffers
-    CmdStrIdx = 0;
+    CmdStrIdx  = 0;
     pCmdStrBuf = cli_calloc(sizeof(char) * CLI_COMMAND_LEN);
 
     // Initialize command list
-    pCmdList_Builtin = (CliCommand_TypeDef*) gConstBuiltinCmdList;
+    pCmdList_Builtin  = (CliCommand_TypeDef *)gConstBuiltinCmdList;
     pCmdList_External = cli_calloc(sizeof(CliCommand_TypeDef) * CLI_NUM_OF_EXTERNAL_CMD);
-    pCmdList_Alias = cli_calloc(sizeof(CliCommand_TypeDef) * CLI_NUM_OF_ALIAS);
+    pCmdList_Alias    = cli_calloc(sizeof(CliCommand_TypeDef) * CLI_NUM_OF_ALIAS);
 
 #if HISTORY_ENABLE
     pHistoryPtr = cli_calloc(sizeof(char *) * HISTORY_DEPTH);
-    history_clear();
+    history_init();
 #endif
 
     // Initialize IO port
@@ -778,7 +760,7 @@ int CLI_Deinit(void)
 {
     cli_port_deinit();
 
-    history_clear();
+    history_init();
 
     CmdStrIdx = 0;
     cli_free(pCmdStrBuf);

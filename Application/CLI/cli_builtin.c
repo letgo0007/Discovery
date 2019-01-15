@@ -6,30 +6,32 @@
  * @date    2018/12/31
  * @version V1.0
  *****************************************************************************/
-#include "cli.h"
 #include "cli_builtin.h"
+#include "cli.h"
 
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 
-extern int cli_getopt(int argc, char **args, char **data_ptr, CliOption_TypeDef options[]);
+#include <getopt.h>
+
+extern void history_init();
+
+extern char **             pHistoryPtr;
+extern unsigned int        HistoryQueueHead;
+extern unsigned int        HistoryQueueTail;
+extern unsigned int        HistoryMemUsage;
 extern CliCommand_TypeDef *pCmdList_Builtin;
 extern CliCommand_TypeDef *pCmdList_External;
 extern CliCommand_TypeDef *pCmdList_Alias;
 
-extern char ** pHistoryPtr;
-extern unsigned int HistoryQueueHead;
-extern unsigned int HistoryQueueTail;
-extern unsigned int HistoryMemUsage;
-
 int builtin_debug(int argc, char **args)
 {
     const char *helptext = "debug usage\n"
-            "\t-e --on     Turn on debug\n"
-            "\t-d --off    Turn off\n"
-            "\t-l --level  Show or set debug level\n"
-            "\t-h --help   Show help text\n";
+                           "\t-e --on     Turn on debug\n"
+                           "\t-d --off    Turn off\n"
+                           "\t-l --level  Show or set debug level\n"
+                           "\t-h --help   Show help text\n";
 
     if ((argc <= 1) || (strcmp("-h", args[1]) == 0) || (strcmp("--help", args[1]) == 0))
     {
@@ -54,7 +56,7 @@ int builtin_debug(int argc, char **args)
         else
         {
             unsigned int level = strtol(args[2], NULL, 0);
-            gCliDebugLevel = level;
+            gCliDebugLevel     = level;
             CLI_PRINT("Debug level = %d\n", gCliDebugLevel);
         }
     }
@@ -64,7 +66,6 @@ int builtin_debug(int argc, char **args)
     }
 
     return 0;
-
 }
 
 /*!@brief Built-in command of "help"
@@ -117,9 +118,9 @@ int builtin_help(int argc, char **argv)
 int builtin_history(int argc, char **args)
 {
     const char *helptext = "history usage:\n"
-            "\t-d --dump  Dump command history.\n"
-            "\t-c --clear Clear command history.\n"
-            "\t-h --help  Show this help text.\n";
+                           "\t-d --dump  Dump command history.\n"
+                           "\t-c --clear Clear command history.\n"
+                           "\t-h --help  Show this help text.\n";
 
 #if HISTORY_ENABLE == 0
     CLI_PRINT("History is function disabled.\n");
@@ -141,14 +142,14 @@ int builtin_history(int argc, char **args)
         for (int i = HistoryQueueTail; i < HistoryQueueHead; i++)
         {
             int j = i % HISTORY_DEPTH;
-            CLI_PRINT("%-6d 0x%08X %s\n", i, (int ) pHistoryPtr[j],
-                    (pHistoryPtr[j] == NULL) ? "NULL" : pHistoryPtr[j]);
+            CLI_PRINT("%-6d 0x%08X %s\n", i, (int)pHistoryPtr[j],
+                      (pHistoryPtr[j] == NULL) ? "NULL" : pHistoryPtr[j]);
         }
     }
     else if ((strcmp("-c", args[1]) == 0) || (strcmp("--clear", args[1]) == 0))
     {
         CLI_PRINT("History clear!\n");
-        history_clear();
+        history_init();
     }
     else if ((strcmp("-h", args[1]) == 0) || (strcmp("--help", args[1]) == 0))
     {
@@ -213,61 +214,28 @@ int builtin_sleep(int argc, char **args)
 /*!@brief Built-in command of "test"
  *
  */
-int builtin_test(int argc, char **args)
+int builtin_test(int argc, char **argv)
 {
-    CLI_PRINT("Argc = %d\n", argc);
-    for (int i = 0; i < argc; i++)
+    optarg = NULL;
+    optind = 0;
+    int                  opt;
+    int                  digit_optind   = 0;
+    int                  option_index   = 0;
+    char *               string         = "a::b:c:d";
+    static struct option long_options[] = {
+        {"reqarg", required_argument, NULL, 'r'},
+        {"optarg", optional_argument, NULL, 'o'},
+        {"noarg", no_argument, NULL, 'n'},
+        {NULL, 0, NULL, 0},
+    };
+    while ((opt = getopt_long_only(argc, argv, string, long_options, &option_index)) != -1)
     {
-        CLI_PRINT("Args[%d] = %s\n", i, args[i] == NULL ? "NULL" : args[i]);
+        printf("opt = %c\t\t", opt);
+        printf("optarg = %s\t\t", optarg);
+        printf("optind = %d\t\t", optind);
+        printf("argv[optind] =%s\t\t", argv[optind]);
+        printf("option_index = %d\n", option_index);
     }
-
-    static CliOption_TypeDef options[] = { { 'i', "integer", 'i' }, { 's', "string", 's' }, { 0,
-            "bool", 'b' }, { 'h', "help", 'h' }, { 0, "", 0 } };
-
-    int c = 0;
-    char *data[1] = { 0 };
-
-    do
-    {
-        c = cli_getopt(argc, args, data, options);
-
-        switch (c)
-        {
-        case 'i':
-        {
-            if (*data != NULL)
-            {
-                CLI_PRINT("Get Integer value of [%s]\n", *data);
-            }
-            break;
-        }
-        case 's':
-        {
-            if (*data != NULL)
-            {
-                CLI_PRINT("Get String value of [%s]\n", *data);
-            }
-            break;
-        }
-        case 'b':
-        {
-            CLI_PRINT("Bool flag is set\n");
-            break;
-        }
-        case 'h':
-        {
-            CLI_PRINT("help text here!");
-            break;
-        }
-        case '?':
-        default:
-        {
-            CLI_ERROR("ERROR: invalid option of [%s]\n", (*data == NULL ? "NULL" : *data));
-            return -1;
-        }
-        }
-
-    } while (c != -1);
 
     return 0;
 }
@@ -286,8 +254,8 @@ int builtin_time(int argc, char **args)
     }
 
     unsigned int start = cli_gettick();
-    int ret = CLI_ExecuteByArgs(argc - 1, args + 1);
-    unsigned int stop = cli_gettick();
+    int          ret   = CLI_ExecuteByArgs(argc - 1, args + 1);
+    unsigned int stop  = cli_gettick();
 
     CLI_PRINT("time: %d.%03d s\n", (stop - start) / 1000, (stop - start) % 1000);
 
@@ -305,13 +273,45 @@ int builtin_version(int argc, char **argv)
 }
 
 const CliCommand_TypeDef gConstBuiltinCmdList[CLI_NUM_OF_BUILTIN_CMD] = {
-        { "debug", "Set debug level", &builtin_debug, },   //
-        { "help", "Show list of commands & prompt.", &builtin_help, },                    //
-        { "history", "Show command history", &builtin_history, },                         //
-        { "test", "CLI argument parse example", &builtin_test, },                         //
-        { "repeat", "Repeat execute a command", &builtin_repeat, },                       //
-        { "sleep", "Put CLI to sleep for an interval of time", &builtin_sleep, },         //
-        { "time", "Time command execution", &builtin_time, },                             //
-        { "version", "Show CLI version", &builtin_version, }
+    {
+        .Name   = "debug",
+        .Prompt = "Set debug level",
+        .Func   = &builtin_debug,
+    },
+    {
+        .Name   = "help",
+        .Prompt = "Show list of commands & prompt.",
+        .Func   = &builtin_help,
+    },
+    {
+        "history",
+        "Show command history",
+        &builtin_history,
+    },
+    {
+        "test",
+        "CLI argument parse example",
+        &builtin_test,
+    }, //
+    {
+        "repeat",
+        "Repeat execute a command",
+        &builtin_repeat,
+    }, //
+    {
+        "sleep",
+        "Put CLI to sleep for an interval of time",
+        &builtin_sleep,
+    }, //
+    {
+        "time",
+        "Time command execution",
+        &builtin_time,
+    }, //
+    {
+        "version",
+        "Show CLI version",
+        &builtin_version,
+    }
 
 };

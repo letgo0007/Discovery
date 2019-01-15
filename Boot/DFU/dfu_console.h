@@ -16,7 +16,7 @@
 #include "stdint.h"
 
 /*! Defines -----------------------------------------------------------------*/
-
+// clang-format off
 /*!@defgroup    HEX_DATATYPE Define Group
  *              Defines for Intel Hex file format
  * @ref         < https://en.wikipedia.org/wiki/Intel_HEX#Color_legend >
@@ -49,40 +49,38 @@
  *                     @note automatic download content to another bank.
  */
 #define DFU_WORK_BANK                  FLASH_BANK_1//(FLASH_BANK_1 | FLASH_BANK_2)
+// clang-format on
 
 /*!@struct Line structure of a line in .hex file
  *
  */
-typedef struct
-{
-    uint8_t Header;
-    uint8_t DataLength;
+typedef struct Dfu_HexLineTypeDefine {
+    uint8_t  Header;
+    uint8_t  DataLength;
     uint16_t DataOffset;
-    uint8_t DataType;
-    uint8_t DataBuf[256];
-    uint8_t CheckSum;
+    uint8_t  DataType;
+    uint8_t  DataBuf[256];
+    uint8_t  CheckSum;
     uint32_t BaseAddress;
     uint32_t LineCount;
     uint32_t ErrorCount;
     uint32_t ByteCount;
 } Dfu_HexLineTypeDefine;
 
-typedef enum
-{
-    DFU_OK = 0,             //!< General OK
-    DFU_BUSY = 1,           //!< DFU process is busy
-    DFU_END = 2,            //!< DFU process is end
-    DFU_FLASH_ERROR = -10,  //!< Flash operation error
-    DFU_FORMAT_ERR = -5,    //!< Command format error
-    DFU_BYTE_ERR = -4,      //!< Get unknown character
+typedef enum DFU_RET {
+    DFU_OK           = 0,   //!< General OK
+    DFU_BUSY         = 1,   //!< DFU process is busy
+    DFU_END          = 2,   //!< DFU process is end
+    DFU_FLASH_ERROR  = -10, //!< Flash operation error
+    DFU_FORMAT_ERR   = -5,  //!< Command format error
+    DFU_BYTE_ERR     = -4,  //!< Get unknown character
     DFU_CHECKSUM_ERR = -3,  //!< Check Sum Error
-    DFU_LENGTH_ERR = -2,    //!< Data Length Error
-    DFU_ERROR = -1          //!< General Error
-
-} Dfu_RetTypeDef;
+    DFU_LENGTH_ERR   = -2,  //!< Data Length Error
+    DFU_ERROR        = -1   //!< General Error
+} DFU_RET;
 
 /*! Functions ---------------------------------------------------------------*/
-Dfu_RetTypeDef Bsp_Dfu_Init();
-Dfu_RetTypeDef Bsp_Dfu_Console();
+DFU_RET Bsp_Dfu_Init();
+DFU_RET Bsp_Dfu_Console();
 
 #endif /* DFU_CONSOLE_H_ */

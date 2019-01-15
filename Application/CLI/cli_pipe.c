@@ -9,14 +9,15 @@
  *****************************************************************************/
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "cli_pipe.h"
 #include "cli_port.h"
 
 /*! Functions ---------------------------------------------------------------*/
+
 /*!@brief
  *
  * @param pBuf
@@ -35,12 +36,12 @@ int RingBuf_Init(RingBuf_TypeDef *pBuf, int size)
         return RB_RET_ERR_LOCK;
     }
 
-    pBuf->Lock = LOCK;
-    pBuf->pBuf = cli_calloc(size);
-    pBuf->Size = size;
+    pBuf->Lock     = LOCK;
+    pBuf->pBuf     = cli_calloc(size);
+    pBuf->Size     = size;
     pBuf->PutIndex = 0;
     pBuf->GetIndex = 0;
-    pBuf->Lock = UNLOCK;
+    pBuf->Lock     = UNLOCK;
 
     return RB_RET_OK;
 }
@@ -59,10 +60,10 @@ int RingBuf_DeInit(RingBuf_TypeDef *pBuf)
 
     pBuf->Lock = LOCK;
     cli_free(pBuf->pBuf);
-    pBuf->Size = 0;
+    pBuf->Size     = 0;
     pBuf->PutIndex = 0;
     pBuf->GetIndex = 0;
-    pBuf->Lock = UNLOCK;
+    pBuf->Lock     = UNLOCK;
 
     return RB_RET_OK;
 }
@@ -74,10 +75,10 @@ int RingBuf_PutChar(RingBuf_TypeDef *pBuf, char c)
         return RB_RET_ERR_PARAM;
     }
 
-    pBuf->Lock = LOCK;
+    pBuf->Lock                 = LOCK;
     pBuf->pBuf[pBuf->PutIndex] = c;
-    pBuf->PutIndex = (pBuf->PutIndex >= pBuf->Size - 1) ? 0 : pBuf->PutIndex + 1;
-    pBuf->Lock = UNLOCK;
+    pBuf->PutIndex             = (pBuf->PutIndex >= pBuf->Size - 1) ? 0 : pBuf->PutIndex + 1;
+    pBuf->Lock                 = UNLOCK;
 
     return RB_RET_OK;
 }
@@ -97,10 +98,10 @@ int RingBuf_GetChar(RingBuf_TypeDef *pBuf)
     }
     else
     {
-        pBuf->Lock = LOCK;
+        pBuf->Lock                 = LOCK;
         pBuf->pBuf[pBuf->GetIndex] = 0;
-        pBuf->GetIndex = (pBuf->GetIndex >= pBuf->Size - 1) ? 0 : pBuf->GetIndex + 1;
-        pBuf->Lock = UNLOCK;
+        pBuf->GetIndex             = (pBuf->GetIndex >= pBuf->Size - 1) ? 0 : pBuf->GetIndex + 1;
+        pBuf->Lock                 = UNLOCK;
         return c;
     }
 }
@@ -124,14 +125,14 @@ int MsgQueue_Init(MsgQueue_TypeDef *pQueue, int QueueSize, int MemSize)
         return MQ_RET_ERR_LOCK;
     }
 
-    pQueue->Lock = LOCK;
-    pQueue->MsgPtrQueue = cli_calloc(sizeof(char*) * QueueSize);
+    pQueue->Lock        = LOCK;
+    pQueue->MsgPtrQueue = cli_calloc(sizeof(char *) * QueueSize);
     pQueue->MsgLenQueue = cli_calloc(sizeof(int) * QueueSize);
 
-    pQueue->QueueSize = QueueSize;
+    pQueue->QueueSize  = QueueSize;
     pQueue->MemorySize = MemSize;
-    pQueue->Head = 0;
-    pQueue->Tail = 0;
+    pQueue->Head       = 0;
+    pQueue->Tail       = 0;
 
     pQueue->Lock = UNLOCK;
     return MQ_RET_OK;
@@ -153,8 +154,8 @@ int MsgQueue_DeInit(MsgQueue_TypeDef *pQueue)
     cli_free(pQueue->MsgPtrQueue);
     cli_free(pQueue->MsgLenQueue);
     pQueue->QueueSize = 0;
-    pQueue->Head = 0;
-    pQueue->Tail = 0;
+    pQueue->Head      = 0;
+    pQueue->Tail      = 0;
 
     pQueue->Lock = UNLOCK;
     return MQ_RET_OK;
@@ -225,7 +226,7 @@ int MsgQueue_PushToHead(MsgQueue_TypeDef *pQueue, char *pMsg, int Len)
     char *pBuf = NULL;
     do
     {
-        pBuf = (char *) cli_calloc((size_t) Len);
+        pBuf = (char *)cli_calloc((size_t)Len);
     } while (pBuf == NULL);
 
     memcpy(pBuf, pMsg, Len);
@@ -257,7 +258,7 @@ int MsgQueue_PullFromTail(MsgQueue_TypeDef *pQueue, char **ppMsg, int *pLen)
     }
 
     *ppMsg = pQueue->MsgPtrQueue[pQueue->Tail];
-    *pLen = pQueue->MsgLenQueue[pQueue->Tail];
+    *pLen  = pQueue->MsgLenQueue[pQueue->Tail];
 
     return MQ_RET_OK;
 }

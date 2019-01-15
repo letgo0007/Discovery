@@ -22,23 +22,22 @@
 #include "usbd_cdc_if.h"
 
 /*! Defines -----------------------------------------------------------------*/
-
-#define STDIN_RX_BUF_SIZE       256         //!< STDIN input buffer size
-#define STDOUT_TX_LINE_SIZE     256         //!< STDOUT max number of bytes in a line
-#define STDOUT_TX_QUEUE_SIZE    256         //!< STDOUT max number of lines in the queue
-#define STDOUT_TX_MEM_SIZE      4096        //!< STDOUT max memory usage allowed in heap
+// clang-format off
+#define STDIN_RX_BUF_SIZE       256     //!< STDIN input buffer size
+#define STDOUT_TX_LINE_SIZE     256     //!< STDOUT max number of bytes in a line
+#define STDOUT_TX_QUEUE_SIZE    256     //!< STDOUT max number of lines in the queue
+#define STDOUT_TX_MEM_SIZE      4096    //!< STDOUT max memory usage allowed in heap
+// clang-format on
 
 /*! Variables ---------------------------------------------------------------*/
 extern UART_HandleTypeDef huart2;
 
-UART_HandleTypeDef *STDIN_huart = &huart2;  //!< STDIN UART handle
+UART_HandleTypeDef *STDIN_huart  = &huart2; //!< STDIN UART handle
 UART_HandleTypeDef *STDOUT_huart = &huart2; //!< STDOUT UART handle
 UART_HandleTypeDef *STDERR_huart = &huart2; //!< STDERR UART handle
-
-MsgQueue_TypeDef stdout_pipe = { 0 };
-
-RingBuf_TypeDef stdin_pipe1 = { 0 };
-RingBuf_TypeDef stdin_pipe2 = { 0 };
+MsgQueue_TypeDef    stdout_pipe  = {0};
+RingBuf_TypeDef     stdin_pipe1  = {0};
+RingBuf_TypeDef     stdin_pipe2  = {0};
 
 /*! Functions ---------------------------------------------------------------*/
 
@@ -57,7 +56,7 @@ unsigned int cli_gettick(void)
  *
  * @param   size
  */
-void *cli_calloc(size_t size)
+void *cli_calloc(unsigned int size)
 {
     if (size <= 0)
     {
@@ -66,7 +65,7 @@ void *cli_calloc(size_t size)
     void *ptr = NULL;
     while (ptr == NULL)
     {
-        //ptr = pvPortMalloc(size);
+        // ptr = pvPortMalloc(size);
         ptr = malloc(size);
     }
     memset(ptr, 0, size);
@@ -75,19 +74,19 @@ void *cli_calloc(size_t size)
 
 void cli_free(void *ptr)
 {
-    //vPortFree(ptr);
+    // vPortFree(ptr);
     free(ptr);
 }
 
 int cli_port_init()
 {
     // Set STDIO type and buffer size
-    setvbuf(stdout, (char *) NULL, _IOLBF, 256);
-    setvbuf(stderr, (char *) NULL, _IONBF, 0);
-    setvbuf(stdin, (char *) NULL, _IONBF, 0);
+    setvbuf(stdout, (char *)NULL, _IOLBF, 256);
+    setvbuf(stderr, (char *)NULL, _IONBF, 0);
+    setvbuf(stdin, (char *)NULL, _IONBF, 0);
 
     // Set UART handle pointer
-    STDIN_huart = &huart2; //!< STDIN UART handle
+    STDIN_huart  = &huart2; //!< STDIN UART handle
     STDOUT_huart = &huart2; //!< STDOUT UART handle
     STDERR_huart = &huart2; //!< STDERR UART handle
 
@@ -97,7 +96,7 @@ int cli_port_init()
     // Setup STDIN pipe
     RingBuf_Init(&stdin_pipe1, STDIN_RX_BUF_SIZE);
     RingBuf_Init(&stdin_pipe2, STDIN_RX_BUF_SIZE);
-    HAL_UART_Receive_DMA(STDIN_huart, (uint8_t*) stdin_pipe1.pBuf, STDIN_RX_BUF_SIZE);
+    HAL_UART_Receive_DMA(STDIN_huart, (uint8_t *)stdin_pipe1.pBuf, STDIN_RX_BUF_SIZE);
 
     // Register board command
     CLI_Register("info", "MCU Information", &cli_info);
@@ -155,7 +154,6 @@ int _read(int file, char *ptr, int len)
             {
                 *ptr = 0xFF;
             }
-
         }
     }
 
@@ -180,16 +178,16 @@ int _write(int file, char *ptr, int len)
         return 0;
     }
 
-    if ((file == 1) || (file == 2)) //STDOUT = 1, STDERR =2
+    if ((file == 1) || (file == 2)) // STDOUT = 1, STDERR =2
     {
-        CDC_Transmit_FS((uint8_t*) ptr, len);
+        CDC_Transmit_FS((uint8_t *)ptr, len);
         MsgQueue_PushToHead(&stdout_pipe, ptr, len);
-        char *trans_ptr[1] = { NULL };
-        int trans_len = 0;
+        char *trans_ptr[1] = {NULL};
+        int   trans_len    = 0;
         MsgQueue_PullFromTail(&stdout_pipe, trans_ptr, &trans_len);
         if ((trans_ptr[0] != NULL) && (trans_len > 0))
         {
-            if (HAL_OK == HAL_UART_Transmit_DMA(STDOUT_huart, (uint8_t*) *trans_ptr, trans_len))
+            if (HAL_OK == HAL_UART_Transmit_DMA(STDOUT_huart, (uint8_t *)*trans_ptr, trans_len))
             {
                 return trans_len;
             }
@@ -205,7 +203,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == STDIN_huart->Instance)
     {
-        //HAL_UART_Receive_DMA(STDIN_huart, STDIN_RxBuf, sizeof(STDIN_RxBuf));
+        // HAL_UART_Receive_DMA(STDIN_huart, STDIN_RxBuf, sizeof(STDIN_RxBuf));
     }
 }
 
@@ -217,17 +215,17 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
         MsgQueue_FreeFromTail(&stdout_pipe);
 
         // Trigger next transmit
-        char *trans_ptr[1] = { NULL };
-        int trans_len = 0;
+        char *trans_ptr[1] = {NULL};
+        int   trans_len    = 0;
         MsgQueue_PullFromTail(&stdout_pipe, trans_ptr, &trans_len);
         if ((*trans_ptr != NULL) && (trans_len > 0))
         {
-            HAL_UART_Transmit_DMA(huart, (uint8_t*) *trans_ptr, trans_len);
+            HAL_UART_Transmit_DMA(huart, (uint8_t *)*trans_ptr, trans_len);
         }
     }
 }
 
-void HAL_UsbCdc_ReceiveCallBack(uint8_t* Buf, uint32_t *Len)
+void HAL_UsbCdc_ReceiveCallBack(uint8_t *Buf, uint32_t *Len)
 {
     for (int i = 0; i < *Len; i++)
     {

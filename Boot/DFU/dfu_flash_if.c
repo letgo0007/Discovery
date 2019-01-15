@@ -16,19 +16,18 @@
  * @version V0.2
  *****************************************************************************/
 
-#include "../DFU/dfu_flash_if.h"
-
+#include "dfu_flash_if.h"
 #include "stm32l4xx_hal.h"
-#include "stdio.h"
 
-#define HWREG64(x)          (*((volatile uint64_t *)((uint32_t)x)))
-#define HWREG32(x)          (*((volatile uint32_t *)((uint32_t)x)))
-#define HWREG16(x)          (*((volatile uint16_t *)((uint32_t)x)))
-#define HWREG8(x)           (*((volatile uint8_t *)((uint32_t)x)))
+#define HWREG64(x) (*((volatile uint64_t *)((uint32_t)x)))
+#define HWREG32(x) (*((volatile uint32_t *)((uint32_t)x)))
+#define HWREG16(x) (*((volatile uint16_t *)((uint32_t)x)))
+#define HWREG8(x) (*((volatile uint8_t *)((uint32_t)x)))
 
-#define IS_SRAM1_ADDRESS(ADDRESS)       ((ADDRESS >= SRAM1_BASE) && (ADDRESS <= SRAM1_BASE + SRAM1_SIZE_MAX))
-#define IS_SRAM2_ADDRESS(ADDRESS)       ((ADDRESS >= SRAM2_BASE) && (ADDRESS <= SRAM2_BASE + SRAM2_SIZE))
-#define IS_SRAM_ADDRESS(ADDRESS)        (IS_SRAM1_ADDRESS(ADDRESS) || IS_SRAM2_ADDRESS(ADDRESS))
+#define IS_SRAM1_ADDRESS(ADDRESS)                                                                  \
+    ((ADDRESS >= SRAM1_BASE) && (ADDRESS <= SRAM1_BASE + SRAM1_SIZE_MAX))
+#define IS_SRAM2_ADDRESS(ADDRESS) ((ADDRESS >= SRAM2_BASE) && (ADDRESS <= SRAM2_BASE + SRAM2_SIZE))
+#define IS_SRAM_ADDRESS(ADDRESS) (IS_SRAM1_ADDRESS(ADDRESS) || IS_SRAM2_ADDRESS(ADDRESS))
 
 /*!@brief   Set active Flash bank to boot.
  *
@@ -38,14 +37,14 @@
  */
 uint32_t Flash_setActiveBank(uint32_t bank)
 {
-    //Check Parameter
+    // Check Parameter
     assert_param(IS_FLASH_BANK(bank));
 
-    //Check if target bank has valid reset vector & stack.
+    // Check if target bank has valid reset vector & stack.
     //.word   _estack           -> End of stack, must be in the SRAM
     //.word   Reset_Handler     -> Reset Vector, must be in the FLASH
     uint32_t estack_addr = Flash_getAddress(bank, 0);
-    uint32_t reset_addr = estack_addr + 4;
+    uint32_t reset_addr  = estack_addr + 4;
 
     assert_param(IS_SRAM_ADDRESS(HWREG32(estack_addr)));
     assert_param(IS_FLASH_MAIN_MEM_ADDRESS(HWREG32(reset_addr)));
@@ -66,21 +65,21 @@ uint32_t Flash_setActiveBank(uint32_t bank)
         {
         case FLASH_BANK_1:
         {
-            OBInit.OptionType = OPTIONBYTE_USER;    //!< USER option byte configuration
-            OBInit.USERType = OB_USER_BFB2;         //!< Dual-bank boot
-            OBInit.USERConfig = OB_BFB2_DISABLE;    //!< Dual-bank boot disable
+            OBInit.OptionType = OPTIONBYTE_USER; //!< USER option byte configuration
+            OBInit.USERType   = OB_USER_BFB2;    //!< Dual-bank boot
+            OBInit.USERConfig = OB_BFB2_DISABLE; //!< Dual-bank boot disable
             break;
         }
         case FLASH_BANK_2:
         {
-            OBInit.OptionType = OPTIONBYTE_USER;    //!< USER option byte configuration
-            OBInit.USERType = OB_USER_BFB2;         //!< Dual-bank boot
-            OBInit.USERConfig = OB_BFB2_ENABLE;     //!< Dual-bank boot enable
+            OBInit.OptionType = OPTIONBYTE_USER; //!< USER option byte configuration
+            OBInit.USERType   = OB_USER_BFB2;    //!< Dual-bank boot
+            OBInit.USERConfig = OB_BFB2_ENABLE;  //!< Dual-bank boot enable
             break;
         }
         default:
         {
-            printf("\e[31mERROR: Flash bank [%d] not supported.\e[0m\n", (uint8_t) bank);
+            printf("\e[31mERROR: Flash bank [%d] not supported.\e[0m\n", (uint8_t)bank);
             return -1;
         }
         }
@@ -91,9 +90,9 @@ uint32_t Flash_setActiveBank(uint32_t bank)
     }
     else
     {
-        printf(
-                "\e[31mERROR: Invalid Vector on Flash bank [%d]! EndStack=[0x%08lX], ResetVector=[0x%08lX]\e[0m\n",
-                (uint8_t) bank, HWREG32(estack_addr), HWREG32(reset_addr));
+        printf("\e[31mERROR: Invalid Vector on Flash bank [%d]! EndStack=[0x%08lX], "
+               "ResetVector=[0x%08lX]\e[0m\n",
+               (uint8_t)bank, HWREG32(estack_addr), HWREG32(reset_addr));
         return -1;
     }
 
@@ -106,7 +105,7 @@ uint32_t Flash_setActiveBank(uint32_t bank)
  */
 uint32_t Flash_getActiveBank(void)
 {
-    //Check if Memory Re-Map function is enabled.
+    // Check if Memory Re-Map function is enabled.
     if (READ_BIT(SYSCFG->MEMRMP, SYSCFG_MEMRMP_FB_MODE) == 0U)
     {
         return FLASH_BANK_1;
@@ -115,7 +114,6 @@ uint32_t Flash_getActiveBank(void)
     {
         return FLASH_BANK_2;
     }
-
 }
 
 /*!@brief Get flash page number from Address.
@@ -125,12 +123,12 @@ uint32_t Flash_getActiveBank(void)
  */
 uint32_t Flash_getPageNum(uint32_t address)
 {
-    //Check valid Flash address
+    // Check valid Flash address
     assert_param(IS_FLASH_PROGRAM_ADDRESS(address));
 
-    return (address < (FLASH_BASE + FLASH_BANK_SIZE)) ?
-            (address - FLASH_BASE) / FLASH_PAGE_SIZE :
-            (address - FLASH_BASE - FLASH_BANK_SIZE) / FLASH_PAGE_SIZE;
+    return (address < (FLASH_BASE + FLASH_BANK_SIZE))
+               ? (address - FLASH_BASE) / FLASH_PAGE_SIZE
+               : (address - FLASH_BASE - FLASH_BANK_SIZE) / FLASH_PAGE_SIZE;
 }
 
 /*!@brief Get flash bank from Address.
@@ -140,7 +138,7 @@ uint32_t Flash_getPageNum(uint32_t address)
  */
 uint32_t Flash_getBankNum(uint32_t address)
 {
-    //Check valid Flash address
+    // Check valid Flash address
     assert_param(IS_FLASH_PROGRAM_ADDRESS(address));
 
     if (READ_BIT(SYSCFG->MEMRMP, SYSCFG_MEMRMP_FB_MODE) == 0U)
@@ -161,7 +159,7 @@ uint32_t Flash_getBankNum(uint32_t address)
  */
 uint32_t Flash_getAddress(uint32_t bank, uint32_t page)
 {
-    //Check valid flash bank and page
+    // Check valid flash bank and page
     assert_param(IS_FLASH_BANK_EXCLUSIVE(bank));
     assert_param(IS_FLASH_PAGE(page));
 
@@ -169,7 +167,7 @@ uint32_t Flash_getAddress(uint32_t bank, uint32_t page)
 
     if (READ_BIT(SYSCFG->MEMRMP, SYSCFG_MEMRMP_FB_MODE) == 0U)
     {
-        //No Bank Swap case, BNAK1 @ 0x8000000, BANK2 @ 0x8080000
+        // No Bank Swap case, BNAK1 @ 0x8000000, BANK2 @ 0x8080000
         if (bank == FLASH_BANK_1)
         {
             address = FLASH_BASE + FLASH_PAGE_SIZE * page;
@@ -181,7 +179,7 @@ uint32_t Flash_getAddress(uint32_t bank, uint32_t page)
     }
     else
     {
-        //Bank Swap case, BNAK2 @ 0x8000000, BANK1 @ 0x8080000
+        // Bank Swap case, BNAK2 @ 0x8000000, BANK1 @ 0x8080000
         if (bank == FLASH_BANK_2)
         {
             address = FLASH_BASE + FLASH_PAGE_SIZE * page;
@@ -203,15 +201,15 @@ uint32_t Flash_getAddress(uint32_t bank, uint32_t page)
  */
 uint32_t Flash_checkPageUsage(uint32_t bank, uint8_t page)
 {
-    //Check Parameters
+    // Check Parameters
     assert_param(IS_FLASH_BANK_EXCLUSIVE(bank));
     assert_param(IS_FLASH_PAGE(page));
 
-    //Calculate flash address
+    // Calculate flash address
     uint32_t StartAddr = Flash_getAddress(bank, page);
     uint32_t UsedCount = 0;
 
-    //Check page content and return used byte count.
+    // Check page content and return used byte count.
     for (int i = 0; i < FLASH_PAGE_SIZE; i = i + 4)
     {
         if (HWREG32(StartAddr + i) != 0xFFFFFFFF)
@@ -230,16 +228,16 @@ uint32_t Flash_checkPageUsage(uint32_t bank, uint8_t page)
  */
 uint32_t Flash_checkBankUsage(uint32_t bank)
 {
-    //Check Parameter
+    // Check Parameter
     assert_param(IS_FLASH_BANK_EXCLUSIVE(bank));
 
-    //Check all page in a Bank
+    // Check all page in a Bank
     uint32_t TotalPage = FLASH_BANK_SIZE / FLASH_PAGE_SIZE;
     uint32_t UsedCount = 0;
 
     for (int i = 0; i < TotalPage; i++)
     {
-        if (Flash_checkPageUsage(bank, i) == 0) //Used page
+        if (Flash_checkPageUsage(bank, i) == 0) // Used page
         {
             UsedCount += 1;
         }
@@ -257,18 +255,18 @@ uint32_t Flash_checkBankUsage(uint32_t bank)
  */
 uint32_t Flash_erasePage(uint32_t bank, uint32_t start_page, uint32_t num_of_page)
 {
-    //Check Parameters
+    // Check Parameters
     assert_param(IS_FLASH_BANK_EXCLUSIVE(bank));
     assert_param(IS_FLASH_PAGE(start_page));
     assert_param(IS_FLASH_PAGE(start_page + num_of_page));
 
-    FLASH_EraseInitTypeDef erase_param = { 0 };
-    HAL_StatusTypeDef ret = HAL_OK;
-    uint32_t page_error = 0;
-    erase_param.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase_param.Banks = bank;
-    erase_param.Page = start_page;
-    erase_param.NbPages = num_of_page;
+    FLASH_EraseInitTypeDef erase_param = {0};
+    HAL_StatusTypeDef      ret         = HAL_OK;
+    uint32_t               page_error  = 0;
+    erase_param.TypeErase              = FLASH_TYPEERASE_PAGES;
+    erase_param.Banks                  = bank;
+    erase_param.Page                   = start_page;
+    erase_param.NbPages                = num_of_page;
 
     HAL_FLASH_Unlock();
     ret = HAL_FLASHEx_Erase(&erase_param, &page_error);
@@ -278,7 +276,7 @@ uint32_t Flash_erasePage(uint32_t bank, uint32_t start_page, uint32_t num_of_pag
     {
         uint32_t usage = Flash_checkPageUsage(bank, start_page);
         printf("Flash_erasePage, status = [%d], error_page = [%lX], usage = [%ld] \n", ret,
-                page_error, usage);
+               page_error, usage);
     }
 
     return ret;
@@ -291,19 +289,19 @@ uint32_t Flash_erasePage(uint32_t bank, uint32_t start_page, uint32_t num_of_pag
  */
 uint32_t Flash_eraseBank(uint32_t bank)
 {
-    //Check Parameters
+    // Check Parameters
     assert_param(IS_FLASH_BANK_EXCLUSIVE(bank));
 
-    //Set up Mass Erase parameters
-    FLASH_EraseInitTypeDef erase_param = { 0 };
-    HAL_StatusTypeDef ret = HAL_OK;
-    uint32_t page_error = 0;
-    erase_param.TypeErase = FLASH_TYPEERASE_MASSERASE;
-    erase_param.Banks = bank;
-    erase_param.Page = 0;
-    erase_param.NbPages = 256;
+    // Set up Mass Erase parameters
+    FLASH_EraseInitTypeDef erase_param = {0};
+    HAL_StatusTypeDef      ret         = HAL_OK;
+    uint32_t               page_error  = 0;
+    erase_param.TypeErase              = FLASH_TYPEERASE_MASSERASE;
+    erase_param.Banks                  = bank;
+    erase_param.Page                   = 0;
+    erase_param.NbPages                = 256;
 
-    //Do Mass erase
+    // Do Mass erase
     HAL_FLASH_Unlock();
     ret = HAL_FLASHEx_Erase(&erase_param, &page_error);
     HAL_FLASH_Lock();
@@ -323,18 +321,18 @@ uint32_t Flash_eraseBank(uint32_t bank)
  */
 uint32_t Flash_cmpPage(uint32_t SrcBank, uint32_t SrcPage, uint32_t DstBank, uint32_t DstPage)
 {
-    //Check Parameters
+    // Check Parameters
     assert_param(IS_FLASH_BANK_EXCLUSIVE(SrcBank));
     assert_param(IS_FLASH_BANK_EXCLUSIVE(DstBank));
     assert_param(IS_FLASH_PAGE(SrcPage));
     assert_param(IS_FLASH_PAGE(DstPage));
 
-    //Compare Page content
-    uint32_t SrcAddr = Flash_getAddress(SrcBank, SrcPage);
-    uint32_t DstAddr = Flash_getAddress(DstBank, DstPage);
+    // Compare Page content
+    uint32_t SrcAddr   = Flash_getAddress(SrcBank, SrcPage);
+    uint32_t DstAddr   = Flash_getAddress(DstBank, DstPage);
     uint32_t DiffCount = 0;
 
-    //Check page content and return difference count.
+    // Check page content and return difference count.
     for (int i = 0; i < FLASH_PAGE_SIZE; i = i + 4)
     {
         if (HWREG32(SrcAddr + i) != HWREG32(DstAddr + i))
@@ -356,28 +354,28 @@ uint32_t Flash_cmpPage(uint32_t SrcBank, uint32_t SrcPage, uint32_t DstBank, uin
  */
 uint32_t Flash_copyPage(uint32_t SrcBank, uint32_t SrcPage, uint32_t DstBank, uint32_t DstPage)
 {
-    //Check Parameters
+    // Check Parameters
     assert_param(IS_FLASH_BANK_EXCLUSIVE(SrcBank));
     assert_param(IS_FLASH_BANK_EXCLUSIVE(DstBank));
     assert_param(IS_FLASH_PAGE(SrcPage));
     assert_param(IS_FLASH_PAGE(DstPage));
 
-    //Get Address
+    // Get Address
     uint32_t SrcAddr = Flash_getAddress(SrcBank, SrcPage);
     uint32_t DstAddr = Flash_getAddress(DstBank, DstPage);
-    uint32_t Ret = 0;
+    uint32_t Ret     = 0;
 
-    //Erase Destination Page
+    // Erase Destination Page
     HAL_FLASH_Unlock();
     Flash_erasePage(DstBank, DstPage, 1);
     HAL_FLASH_Lock();
 
-    //Write Destination Page
+    // Write Destination Page
     HAL_FLASH_Unlock();
     for (int i = 0; i < FLASH_PAGE_SIZE; i = i + 8)
     {
         uint64_t data = HWREG64(SrcAddr + i);
-        Ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, DstAddr + i, data);
+        Ret           = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, DstAddr + i, data);
 
         if (Ret != HAL_OK)
         {
@@ -402,7 +400,7 @@ uint32_t Flash_copyBank(uint32_t SrcBank, uint32_t DstBank)
     uint16_t page = 0;
     for (page = 0; page < FLASH_BANK_SIZE / FLASH_PAGE_SIZE; page++)
     {
-        //Check if a flash page is used.
+        // Check if a flash page is used.
         uint32_t PageUsage = Flash_checkPageUsage(SrcBank, page);
 
         if (PageUsage > 0)
