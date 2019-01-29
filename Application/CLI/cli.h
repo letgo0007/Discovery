@@ -83,23 +83,21 @@
 #define CLI_ERROR(msg, args...)                                                                    \
     if (gCliDebugLevel >= 1)                                                                       \
     {                                                                                              \
-        fprintf(stderr, ANSI_RED "%s <%s:%d> " msg ANSI_RESET, CLI_TimeStampStr(), __FILE__,       \
-                __LINE__, ##args);                                                                 \
+        fprintf(stderr, ANSI_RED "<%s:%d> " msg ANSI_RESET, __FILE__, __LINE__, ##args);           \
     }
 
 // Warning Message output, with Yellow color.
 #define CLI_WARNING(msg, args...)                                                                  \
     if (gCliDebugLevel >= 2)                                                                       \
     {                                                                                              \
-        fprintf(stdout, ANSI_YELLOW "%s <%s:%d> " msg ANSI_RESET, CLI_TimeStampStr(), __FILE__,    \
-                __LINE__, ##args);                                                                 \
+        fprintf(stdout, ANSI_YELLOW "<%s:%d> " msg ANSI_RESET, __FILE__, __LINE__, ##args);        \
     }
 
 // Info Message output, with Magente color.
 #define CLI_INFO(msg, args...)                                                                     \
     if (gCliDebugLevel >= 3)                                                                       \
     {                                                                                              \
-        fprintf(stdout, ANSI_MAGENTE "%s " msg ANSI_RESET, CLI_TimeStampStr(), ##args);            \
+        fprintf(stdout, ANSI_MAGENTE msg ANSI_RESET, ##args);                                      \
     }
 
 /*!@typedef CliCommand_TypeDef
@@ -134,7 +132,6 @@ typedef struct CliOption_TypeDef {
 extern int gCliDebugLevel;
 
 /*! Functions ---------------------------------------------------------------*/
-char *CLI_TimeStampStr(void);
 int   CLI_Register(const char *name, const char *prompt, int (*func)(int, char **));
 int   CLI_Unregister(const char *name);
 int   CLI_ExecuteByArgs(int argcount, char **argbuf);

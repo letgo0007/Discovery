@@ -12,7 +12,6 @@
 #include "cli_builtin.h"
 #include "cli_pipe.h"
 #include "cli_port.h"
-
 #include "stdarg.h"
 #include "stdlib.h"
 #include "string.h"
@@ -22,16 +21,14 @@
 /** Private function prototypes ---------------------------------------------*/
 
 /** Variables ---------------------------------------------------------------*/
-int          gCliDebugLevel = 3;    // Global debug level
-char *       pCmdStrBuf     = NULL; // Command String buffer pointer
-unsigned int CmdStrIdx      = 0;    // Command String operation index.
-
-char **      pHistoryPtr      = NULL; // History pointer buffer pointer
-unsigned int HistoryQueueHead = 0;    // History queue head
-unsigned int HistoryQueueTail = 0;    // History queue tail
-unsigned int HistoryPullDepth = 0;    // History pull depth
-unsigned int HistoryMemUsage  = 0;    // History total memory usage
-
+int                 gCliDebugLevel    = 3;    // Global debug level
+char *              pCmdStrBuf        = NULL; // Command String buffer pointer
+unsigned int        CmdStrIdx         = 0;    // Command String operation index.
+char **             pHistoryPtr       = NULL; // History pointer buffer pointer
+unsigned int        HistoryQueueHead  = 0;    // History queue head
+unsigned int        HistoryQueueTail  = 0;    // History queue tail
+unsigned int        HistoryPullDepth  = 0;    // History pull depth
+unsigned int        HistoryMemUsage   = 0;    // History total memory usage
 CliCommand_TypeDef *pCmdList_Builtin  = NULL;
 CliCommand_TypeDef *pCmdList_External = NULL;
 CliCommand_TypeDef *pCmdList_Alias    = NULL;
@@ -588,17 +585,6 @@ int cli_excute(int argc, char **args, CliCommand_TypeDef *pCmdList)
     }
 
     return CLI_FAIL;
-}
-
-char *CLI_TimeStampStr(void)
-{
-    static char timestamp[16] = {0};
-
-    uint32_t tick = cli_gettick();
-
-    sprintf(timestamp, "[%03ld.%03ld]", tick / 1000, tick % 1000);
-
-    return timestamp;
 }
 
 /*!@brief   Register a command to CLI.

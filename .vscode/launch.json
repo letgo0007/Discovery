@@ -1,0 +1,17 @@
+{
+    // Install Cortex-Debug in Vscode
+    //https://marcelball.ca/projects/cortex-debug/cortex-debug-launch-configurations/
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "stutil",
+            "cwd": "${workspaceRoot}",
+            "executable": "./Build/discovery.elf",
+            "name": "Debug (ST-Util)",
+            "device": "STM32L476",
+            "v1": false
+        }
+    ]
+}
