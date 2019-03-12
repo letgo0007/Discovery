@@ -12,6 +12,8 @@
 # 2015 - 07 - 22 - first version
 #-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+
+
 ######################################
 #target
 ######################################
@@ -21,6 +23,9 @@ TARGET = discovery
 ######################################
 #building variables
 ######################################
+#make flags, default to 8 job
+
+MAKEFLAGS = j8
 #debug build ?
 DEBUG = 1
 #optimization
@@ -67,12 +72,15 @@ CC = $(GCC_PATH)/$(PREFIX)gcc
 AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
 CP = $(GCC_PATH)/$(PREFIX)objcopy
 SZ = $(GCC_PATH)/$(PREFIX)size
+GDB = $(PREFIX)gdb
+AR = $(PREFIX)ar
 else
 CC = $(PREFIX)gcc
 AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
 SZ = $(PREFIX)size
 GDB = $(PREFIX)gdb
+AR = $(PREFIX)ar
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
@@ -130,7 +138,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32L476VGTx_FLASH.ld
 
 #libraries
-LIBS = -lc -lm -lnosys
+LIBS = -lc -lm -lnosys	# C / Math / nosys
 LIBDIR =
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
@@ -142,30 +150,43 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 #build the application
 #######################################
 #list of objects
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
-vpath %.c $(sort $(dir $(C_SOURCES)))
+OBJECTS += $(addprefix $(BUILD_DIR)/, $(C_SOURCES:.c=.o))
+vpath %.c $(sort $(C_SOURCES))
+
 #list of ASM program objects
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
-vpath %.s $(sort $(dir $(ASM_SOURCES)))
+OBJECTS += $(addprefix $(BUILD_DIR)/, $(ASM_SOURCES:.s=.o))
+vpath %.s $(sort $(ASM_SOURCES))
 
+# Compile all C files
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+	@echo " $(TARGET): [CC]" $(patsubst $(BUILD_DIR)/%,%,$<)
+	@$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(<:.c=.lst) $< -o $@
 
+# Compile all ASM files
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	$(AS) -c $(CFLAGS) $< -o $@
+	@echo " $(TARGET): [AS]" $(patsubst $(BUILD_DIR)/%,%,$<)
+	@$(AS) -c $(CFLAGS) $< -o $@
 
+# Link all objects
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+	@$(AR) rcs $(BUILD_DIR)/$(TARGET).a $(OBJECTS)
+	@echo " $(TARGET): [LD]" $(patsubst $(BUILD_DIR)/%, %, $@)
+	@$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
 
+# Convert elf to hex
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
 
+# Convert elf to bin
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(BIN) $< $@
 
+# Prepare build directory
 $(BUILD_DIR):
 	mkdir $@
+	-mkdir -p $(sort $(addprefix $(BUILD_DIR)/, $(dir $(C_SOURCES))))
+	-mkdir -p $(sort $(addprefix $(BUILD_DIR)/, $(dir $(ASM_SOURCES))))
 
 #######################################
 #Compile and download to unit
