@@ -57,7 +57,6 @@
 #include "lcd.h"
 #include "quadspi.h"
 #include "rtc.h"
-#include "sai.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -137,7 +136,6 @@ int main(void)
     MX_I2C2_Init();
     MX_LCD_Init();
     MX_QUADSPI_Init();
-    // MX_SAI1_Init();
     MX_SPI2_Init();
     MX_USART2_UART_Init();
     MX_TIM6_Init();

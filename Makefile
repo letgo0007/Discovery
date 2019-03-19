@@ -24,7 +24,6 @@ TARGET = discovery
 #building variables
 ######################################
 #make flags, default to 8 job
-
 MAKEFLAGS = j8
 #debug build ?
 DEBUG = 1
@@ -46,14 +45,16 @@ C_SOURCES +=
 
 include Application/BoardDriver/subdir.mk
 include Application/CLI/subdir.mk
+include Application/DFU/subdir.mk
 include Application/SimpleUI/subdir.mk
 include Application/UsbLogger/subdir.mk
-include Boot/subdir.mk
-include Drivers/BSP/subdir.mk
-include Drivers/EEPROM_Emul/subdir.mk
-include Drivers/STM32L4xx_HAL_Driver/subdir.mk
-include Drivers/USB_DEVICE/subdir.mk
-include Middlewares/Third_Party/FreeRTOS/subdir.mk
+include Board/STM32L476G-Discovery/subdir.mk
+include drivers/BSP/subdir.mk
+include lib/EEPROM_Emul/subdir.mk
+include lib/STM32L4xx_HAL_Driver/subdir.mk
+include lib/STM32_USB_Device_Library/subdir.mk
+include lib/USB_DEVICE/subdir.mk
+include lib/FreeRTOS/subdir.mk
 
 #ASM sources
 ASM_SOURCES =  \

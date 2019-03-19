@@ -219,7 +219,6 @@ int builtin_test(int argc, char **argv)
     optarg = NULL;
     optind = 0;
     int                  opt;
-    int                  digit_optind   = 0;
     int                  option_index   = 0;
     char *               string         = "a::b:c:d";
     static struct option long_options[] = {

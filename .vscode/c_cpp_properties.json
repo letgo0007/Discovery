@@ -7,18 +7,7 @@
                 "STM32L476xx"
             ],
             "includePath": [
-                "${workspaceFolder}/",
-                "${workspaceFolder}/Application/**",
-                "${workspaceFolder}/Boot/**",
-                "${workspaceFolder}/Drivers/BSP/**",
-                "${workspaceFolder}/Drivers/EEPROM_Emul/**",
-                "${workspaceFolder}/Drivers/CMSIS/Include",
-                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L4xx/Include",
-                "${workspaceFolder}/Drivers/STM32L4xx_HAL_Driver/Inc",
-                "${workspaceFolder}/Drivers/STM32L4xx_HAL_Driver/Inc/Legacy",
-                "${workspaceFolder}/Drivers/USB_DEVICE",
-                "${workspaceFolder}/Middlewares/ST/STM32_USB_Device_Library/**",
-                "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/**"
+                "${workspaceFolder}/**"
             ],
             "compilerPath": "/usr/local/bin/arm-none-eabi-gcc",
             "cStandard": "c11",
@@ -27,18 +16,7 @@
             "browse": {
                 "path": [
                     "/usr/local/Caskroom/gcc-arm-embedded/7-2018-q2-update/gcc-arm-none-eabi-7-2018-q2-update/",
-                    "${workspaceFolder}/",
-                    "${workspaceFolder}/Application/**",
-                    "${workspaceFolder}/Boot/**",
-                    "${workspaceFolder}/Drivers/BSP/**",
-                    "${workspaceFolder}/Drivers/EEPROM_Emul/**",
-                    "${workspaceFolder}/Drivers/CMSIS/Include",
-                    "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L4xx/Include",
-                    "${workspaceFolder}/Drivers/STM32L4xx_HAL_Driver/Inc",
-                    "${workspaceFolder}/Drivers/STM32L4xx_HAL_Driver/Inc/Legacy",
-                    "${workspaceFolder}/Drivers/USB_DEVICE",
-                    "${workspaceFolder}/Middlewares/ST/STM32_USB_Device_Library/**",
-                    "${workspaceFolder}/Middlewares/Third_Party/FreeRTOS/**"
+                    "${workspaceFolder}/**"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db"

@@ -15,7 +15,7 @@
  * @date    2018/08/12
  * @version V0.2
  *****************************************************************************/
-
+#include "stdio.h"
 #include "dfu_flash_if.h"
 #include "stm32l4xx_hal.h"
 
